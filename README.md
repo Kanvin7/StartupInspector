@@ -1,5 +1,9 @@
 # StartupInspector — Windows 开机自启检测
 
+![release](https://img.shields.io/github/v/release/Kanvin7/StartupInspector?sort=semver)
+![build](https://github.com/Kanvin7/StartupInspector/actions/workflows/build.yml/badge.svg)
+![license](https://img.shields.io/github/license/Kanvin7/StartupInspector)
+
 一个轻量的 Windows 开机自启项查看与管理工具。它会扫描系统上常见的自启位置,
 在界面里集中展示,并允许你启用 / 停用 / 删除这些项。
 
@@ -7,7 +11,7 @@
 
 ## 下载
 
-到 Releases 页面下载 `StartupInspector.exe`:自包含单文件,双击即可运行,无需预先安装 .NET 运行时。
+到 [Releases 页面](https://github.com/Kanvin7/StartupInspector/releases) 下载 `StartupInspector.exe`:自包含单文件,双击即可运行,无需预先安装 .NET 运行时。
 命令行版本是 `StartupInspectorCli.exe`。
 
 > 可执行文件未做代码签名,首次运行时 Windows SmartScreen 可能提示"未知发布者",选择"更多信息 → 仍要运行"即可。
