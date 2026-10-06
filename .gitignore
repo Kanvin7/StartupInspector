@@ -1,0 +1,19 @@
+# 构建输出
+[Bb]in/
+[Oo]bj/
+publish/
+
+# 编辑器 / IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# 打包产物
+*.nupkg
+*.snupkg
+
+# 操作系统
+Thumbs.db
+Desktop.ini
+.DS_Store
