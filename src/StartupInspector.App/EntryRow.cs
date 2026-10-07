@@ -51,12 +51,12 @@ public sealed class EntryRow : INotifyPropertyChanged
 
 internal static class Palette
 {
-    public static readonly Brush Registry = Make("#7C3AED");
-    public static readonly Brush Folder = Make("#0891B2");
-    public static readonly Brush Task = Make("#D97706");
-    public static readonly Brush Service = Make("#2563EB");
-    public static readonly Brush Enabled = Make("#16A34A");
-    public static readonly Brush Muted = Make("#9AA0A6");
+    public static readonly Brush Registry = Make("#A78BFA");
+    public static readonly Brush Folder = Make("#22D3EE");
+    public static readonly Brush Task = Make("#FBBF24");
+    public static readonly Brush Service = Make("#60A5FA");
+    public static readonly Brush Enabled = Make("#4ADE80");
+    public static readonly Brush Muted = Make("#8A8A8A");
 
     private static Brush Make(string hex)
     {

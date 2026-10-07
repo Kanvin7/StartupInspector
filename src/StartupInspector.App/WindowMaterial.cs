@@ -20,8 +20,8 @@ internal static class WindowMaterial
 
     private const int BackdropMica = 2;         // DWMSBT_MAINWINDOW
     private const int CornerRound = 2;          // DWMWCP_ROUND
-    private const int Light = 0;                // 与浅色界面一致
-    private const int LightBorder = 0x00EBE7E4; // COLORREF 0x00BBGGRR = #E4E7EB
+    private const int Dark = 1;                 // 与深色界面一致
+    private const int DarkBorder = 0x003A3A3A; // COLORREF 0x00BBGGRR = #3A3A3A
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
@@ -32,9 +32,9 @@ internal static class WindowMaterial
         if (handle == IntPtr.Zero) return;
 
         Set(handle, SystemBackdropType, BackdropMica);
-        Set(handle, UseImmersiveDarkMode, Light);
+        Set(handle, UseImmersiveDarkMode, Dark);
         Set(handle, WindowCornerPreference, CornerRound);
-        Set(handle, BorderColor, LightBorder);
+        Set(handle, BorderColor, DarkBorder);
     }
 
     private static void Set(IntPtr handle, int attribute, int value)

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using StartupInspector.Core;
 
@@ -13,10 +14,10 @@ namespace StartupInspector.App;
 
 public partial class MainWindow : Window
 {
-    private static readonly Brush PillElevatedBackground = Freeze("#ECFDF5");
-    private static readonly Brush PillElevatedText = Freeze("#047857");
-    private static readonly Brush PillNormalBackground = Freeze("#FEF3C7");
-    private static readonly Brush PillNormalText = Freeze("#92400E");
+    private static readonly Brush PillElevatedBackground = Freeze("#14321F");
+    private static readonly Brush PillElevatedText = Freeze("#4ADE80");
+    private static readonly Brush PillNormalBackground = Freeze("#3A2E12");
+    private static readonly Brush PillNormalText = Freeze("#FBBF24");
 
     private readonly StartupScanner _scanner = new();
     private readonly StartupController _controller = new();
