@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="StartupInspector logo">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#BFE3FF"/>
+      <stop offset="1" stop-color="#D9CBFF"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#FF9E7A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 底板 -->
+  <rect x="32" y="32" width="448" height="448" rx="116" fill="url(#plate)"/>
+  <ellipse cx="170" cy="146" rx="118" ry="84" fill="#FFFFFF" opacity="0.30"/>
+
+  <!-- 尾焰 -->
+  <path d="M256 364 C238 394 238 420 256 448 C274 420 274 394 256 364 Z"
+        fill="url(#flame)" stroke="#3F3D56" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M256 390 C249 405 249 417 256 431 C263 417 263 405 256 390 Z" fill="#FFF3C4"/>
+
+  <!-- 侧翼 -->
+  <path d="M204 282 L164 344 C158 354 166 366 178 364 L204 356 Z"
+        fill="#FFB3C7" stroke="#3F3D56" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M308 282 L348 344 C354 354 346 366 334 364 L308 356 Z"
+        fill="#FFB3C7" stroke="#3F3D56" stroke-width="10" stroke-linejoin="round"/>
+
+  <!-- 箭体 -->
+  <path d="M256 84 C300 138 314 202 314 262 L314 318 C314 356 288 378 256 378
+           C224 378 198 356 198 318 L198 262 C198 202 212 138 256 84 Z"
+        fill="#FFFDF7" stroke="#3F3D56" stroke-width="11" stroke-linejoin="round"/>
+
+  <!-- 表情 -->
+  <ellipse cx="233" cy="250" rx="9" ry="12" fill="#3F3D56"/>
+  <ellipse cx="279" cy="250" rx="9" ry="12" fill="#3F3D56"/>
+  <ellipse cx="216" cy="274" rx="13" ry="9" fill="#FFB3C7"/>
+  <ellipse cx="296" cy="274" rx="13" ry="9" fill="#FFB3C7"/>
+  <path d="M239 278 Q256 296 273 278" stroke="#3F3D56" stroke-width="9"
+        stroke-linecap="round" fill="none"/>
+
+  <!-- 闪光 -->
+  <path d="M136 132 L142 152 L162 158 L142 164 L136 184 L130 164 L110 158 L130 152 Z"
+        fill="#FFFFFF" opacity="0.95"/>
+  <path d="M384 168 L388 181 L401 185 L388 189 L384 202 L380 189 L367 185 L380 181 Z"
+        fill="#FFFFFF" opacity="0.95"/>
+</svg>

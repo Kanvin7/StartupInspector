@@ -10,6 +10,7 @@
     <AssemblyName>StartupInspector</AssemblyName>
     <RootNamespace>StartupInspector.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>appicon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,5 +1,7 @@
 # StartupInspector — Windows 开机自启检测
 
+<img src="docs/logo.png" width="112" alt="StartupInspector logo">
+
 ![release](https://img.shields.io/github/v/release/Kanvin7/StartupInspector?sort=semver)
 ![build](https://github.com/Kanvin7/StartupInspector/actions/workflows/build.yml/badge.svg)
 ![license](https://img.shields.io/github/license/Kanvin7/StartupInspector)
