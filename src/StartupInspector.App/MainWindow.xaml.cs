@@ -44,6 +44,12 @@ public partial class MainWindow : Window
         Loaded += (_, _) => Rescan();
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        WindowMaterial.Apply(this);
+    }
+
     private static Brush Freeze(string hex)
     {
         var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
