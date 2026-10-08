@@ -225,21 +225,64 @@ public partial class MainWindow : Window
             return;
         }
 
-        var confirm = MessageBox.Show(
-            $"确定要删除所选的 {rows.Count} 项吗?此操作不可撤销(服务不会被删除)。",
-            "删除", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
-        if (confirm != MessageBoxResult.OK) return;
+         var confirm = MessageBox.Show(
+             $"确定要删除所选的 {rows.Count} 项吗?\n\n" +
+             "删除前会自动备份,之后可以用\"撤销上次删除\"还原。服务不会被删除。",
+             "删除", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+         if (confirm != MessageBoxResult.Yes) return;
 
-        var failures = new List<string>();
-        foreach (var row in rows)
-        {
-            var result = _controller.Delete(row.Entry);
-            if (!result.Success) failures.Add($"{row.Name}:{result.Message}");
-        }
+         // 先备份再删除,备份文件放在 %LOCALAPPDATA%\\StartupInspector\\backups
+         var result = _controller.Delete(rows.Select(r => r.Entry).ToList());
+         var backupPath = BackupStore.Save(result.Backup);
+         Rescan();
 
-        Rescan();
-        ReportFailures(failures, "删除");
-    }
+         if (result.Failures.Count == 0)
+         {
+             var backup = backupPath is null ? "" : $"\n\n已备份到:\n{backupPath}";
+             MessageBox.Show($"已删除 {result.DeletedCount} 项。{backup}", "删除完成", MessageBoxButton.OK, MessageBoxImage.Information);
+             return;
+         }
+
+         var detail = string.Join("\n", result.Failures.Take(12));
+         if (result.Failures.Count > 12) detail += $"\n… 另有 {result.Failures.Count - 12} 项";
+         var summary = result.DeletedCount == 0 ? "删除失败:" : $"已删除 {result.DeletedCount} 项,以下未能删除:";
+         MessageBox.Show($"{summary}\n\n{detail}", "结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+     }
+
+     /// <summary>把最近一次删除的内容建回来。</summary>
+     private void Undo_Click(object sender, RoutedEventArgs e)
+     {
+         var latest = BackupStore.LoadLatest();
+         if (latest is null)
+         {
+             MessageBox.Show("还没有删除记录。", "撤销上次删除", MessageBoxButton.OK, MessageBoxImage.Information);
+             return;
+         }
+
+         var (backupPath, file) = latest.Value;
+         var names = string.Join("\n", file.Items.Take(12).Select(i => "· " + i.DisplayName));
+         if (file.Items.Count > 12) names += $"\n… 另有 {file.Items.Count - 12} 项";
+
+         var confirm = MessageBox.Show(
+             $"将还原 {file.CreatedAt} 备份的 {file.Items.Count} 项:\n\n{names}\n\n继续吗?",
+             "撤销上次删除", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+         if (confirm != MessageBoxResult.Yes) return;
+
+         var outcomes = BackupStore.Restore(file);
+         Rescan();
+
+         var failed = outcomes.Where(o => !o.Success).ToList();
+         if (failed.Count == 0)
+         {
+             // 整份都还原成功就不再重复提示,文件本身保留作为记录
+             BackupStore.MarkRestored(backupPath);
+             MessageBox.Show($"已还原 {outcomes.Count} 项。", "撤销完成", MessageBoxButton.OK, MessageBoxImage.Information);
+             return;
+         }
+
+         var detail = string.Join("\n", failed.Take(12).Select(o => $"{o.Name}:{o.Message}"));
+         MessageBox.Show($"还原 {outcomes.Count - failed.Count} 项,{failed.Count} 项失败:\n\n{detail}", "结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+     }
 
     private static void ReportFailures(List<string> failures, string verb)
     {

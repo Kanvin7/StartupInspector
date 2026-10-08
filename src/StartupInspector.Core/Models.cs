@@ -13,6 +13,7 @@ public enum StartupSource
     StartupFolderCurrentUser,
     StartupFolderAllUsers,
     ScheduledTask,
+    PackagedAppStartupTask,
     Service
 }
 
@@ -59,6 +60,12 @@ public sealed class StartupEntry
     [JsonIgnore]
     public bool CanToggle => !IsRunOnce;
 
+    /// <summary>
+    /// 最近一次开机这一项花了多少毫秒(来自开机性能日志,读不到时为 null)。
+    /// 耗时要在所有来源扫完之后统一回填,所以这个是可写的。
+    /// </summary>
+    public int? StartupMilliseconds { get; set; }
+
     [JsonIgnore] internal RegistryHive Hive { get; init; }
     [JsonIgnore] internal RegistryView View { get; init; }
     [JsonIgnore] internal string? RegistryPath { get; init; }
@@ -66,6 +73,12 @@ public sealed class StartupEntry
     [JsonIgnore] internal string? FileFullPath { get; init; }
     [JsonIgnore] internal string? TaskPath { get; init; }
     [JsonIgnore] internal string? ServiceName { get; init; }
+
+    /// <summary>打包应用(Store/MSIX)的包族名,例如 Microsoft.PowerAutomateDesktop_8wekyb3d8bbwe。</summary>
+    [JsonIgnore] internal string? PackageFamilyName { get; init; }
+
+    /// <summary>打包应用的启动任务 Id,例如 AutoStartTask。</summary>
+    [JsonIgnore] internal string? PackageTaskId { get; init; }
 
     /// <summary>服务是否为"自动(延迟启动)"。</summary>
     [JsonIgnore] internal bool IsDelayedAutoStart { get; init; }
@@ -105,6 +118,7 @@ public static class StartupLabels
         StartupSource.StartupFolderCurrentUser => "启动文件夹 (当前用户)",
         StartupSource.StartupFolderAllUsers => "启动文件夹 (所有用户)",
         StartupSource.ScheduledTask => "计划任务",
+        StartupSource.PackagedAppStartupTask => "应用启动任务 (当前用户)",
         StartupSource.Service => "系统服务",
         _ => source.ToString()
     };

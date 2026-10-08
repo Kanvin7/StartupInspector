@@ -6,7 +6,8 @@ namespace StartupInspector.Core;
 
 /// <summary>
 /// 扫描 Windows 上常见的开机自启位置:注册表 Run/RunOnce(含 32/64 位视图)、
-/// 启动文件夹、带"登录/开机"触发器的计划任务、自动启动的服务。
+/// 启动文件夹、打包应用(Store/MSIX)的启动任务、带"登录/开机"触发器的计划任务、
+/// 自动启动的服务。扫描完会按需回填最近一次开机的耗时。
 /// 每个来源独立捕获异常,单个来源失败不会清空整个结果。
 /// </summary>
 public sealed class StartupScanner
@@ -17,6 +18,7 @@ public sealed class StartupScanner
         var warnings = new List<string>();
         TryAdd(items, warnings, "注册表启动项", ScanRegistryRun);
         TryAdd(items, warnings, "启动文件夹", ScanStartupFolders);
+        TryAdd(items, warnings, "应用启动任务", PackagedApps.Scan);
         TryAdd(items, warnings, "计划任务", ScanScheduledTasks);
         TryAdd(items, warnings, "系统服务", ScanServices);
 
@@ -24,6 +26,13 @@ public sealed class StartupScanner
             .OrderBy(i => i.Source)
             .ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+
+        // 开机耗时来自诊断-性能日志,需要管理员权限;读不到时状态栏会给出提示。
+        var impact = StartupImpact.LatestBootTimes();
+        if (impact is null)
+            warnings.Add("开机耗时:读取开机性能日志失败(需要以管理员身份运行)");
+        else
+            StartupImpact.Assign(entries, impact);
 
         return new ScanResult { Entries = entries, Warnings = warnings };
     }

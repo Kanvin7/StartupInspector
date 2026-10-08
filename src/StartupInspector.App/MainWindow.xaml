@@ -241,6 +241,7 @@
                 <Button x:Name="ScanButton" Content="重新扫描" Style="{StaticResource PrimaryButton}" Click="ScanButton_Click" />
                 <Button Content="导出 CSV" Style="{StaticResource ToolButton}" Click="ExportCsv_Click" />
                 <Button Content="导出 JSON" Style="{StaticResource ToolButton}" Click="ExportJson_Click" />
+                <Button x:Name="UndoButton" Content="撤销上次删除" Style="{StaticResource ToolButton}" Click="Undo_Click" />
                 <Button x:Name="ElevateButton" Content="以管理员身份重启" Style="{StaticResource ToolButton}"
                         Click="Elevate_Click" Margin="8,0,0,0" />
             </StackPanel>
@@ -313,6 +314,15 @@
                                 <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" Margin="0,0,8,0" />
                                 <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
                             </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="开机耗时" Width="110" SortMemberPath="ImpactMilliseconds">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding ImpactText}" Foreground="{Binding ImpactBrush}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

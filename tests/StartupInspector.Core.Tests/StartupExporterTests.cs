@@ -9,7 +9,7 @@ public class StartupExporterTests
     {
         var csv = StartupExporter.ToCsv(Array.Empty<StartupEntry>());
 
-        Assert.StartsWith("名称,来源,状态,发布者,可执行文件,参数,位置,需管理员,已失效", csv);
+        Assert.StartsWith("名称,来源,状态,开机耗时(毫秒),发布者,可执行文件,参数,位置,需管理员,已失效", csv);
     }
 
     [Fact]
@@ -50,4 +50,3 @@ public class StartupExporterTests
         Assert.DoesNotContain("CanToggle", json);
     }
 }
-

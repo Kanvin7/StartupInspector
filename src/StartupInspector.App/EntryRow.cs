@@ -35,6 +35,20 @@ public sealed class EntryRow : INotifyPropertyChanged
     public bool IsDisabled => Entry.Status == StartupStatus.Disabled;
     public bool IsOrphaned => Entry.IsOrphaned;
 
+    /// <summary>最近一次开机的耗时文本,读不到日志时显示占位符。</summary>
+    public string ImpactText => StartupImpact.Describe(Entry.StartupMilliseconds) ?? "—";
+
+    /// <summary>供列排序用:未知的排到最后。</summary>
+    public int ImpactMilliseconds => Entry.StartupMilliseconds ?? int.MaxValue;
+
+    public Brush ImpactBrush => StartupImpact.Level(Entry.StartupMilliseconds) switch
+    {
+        "低" => Palette.Enabled,
+        "中" => Palette.Medium,
+        "高" => Palette.High,
+        _ => Palette.Muted,
+    };
+
     public Brush SourceBrush => Entry.Source switch
     {
         StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine
@@ -57,6 +71,8 @@ internal static class Palette
     public static readonly Brush Task = Make("#FBBF24");
     public static readonly Brush Service = Make("#60A5FA");
     public static readonly Brush Enabled = Make("#4ADE80");
+    public static readonly Brush Medium = Make("#FBBF24");
+    public static readonly Brush High = Make("#F87171");
     public static readonly Brush Muted = Make("#8A8A8A");
 
     private static Brush Make(string hex)

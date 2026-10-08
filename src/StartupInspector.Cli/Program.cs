@@ -85,6 +85,8 @@ static void PrintTable(IReadOnlyList<StartupEntry> entries)
         Console.WriteLine($"    路径: {e.ExecutablePath}");
         if (e.Publisher.Length > 0) Console.WriteLine($"    发布者: {e.Publisher}");
         Console.WriteLine($"    位置: {e.Location}");
+        if (e.StartupMilliseconds is int milliseconds)
+            Console.WriteLine($"    开机耗时: {StartupImpact.Describe(milliseconds)}");
         Console.WriteLine();
     }
 }

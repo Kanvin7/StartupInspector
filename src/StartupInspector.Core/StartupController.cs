@@ -10,6 +10,7 @@ namespace StartupInspector.Core;
 ///   注册表 RunOnce —— 不支持停用(该机制不作用于 RunOnce),只能删除
 ///   启动文件夹 —— 写入 Explorer\StartupApproved\StartupFolder 的标记(文件保留在原处)
 ///   计划任务 —— 修改 Enabled 标志后重新注册
+///   应用启动任务 —— 写入打包应用 AppModel 下的 State 值(用户自己的 HKCU,无需管理员)
 ///   服务    —— 通过 sc config 修改启动类型(需要管理员)
 /// 注意:停用不会改动注册表里的启动项本身,程序下次运行时若重建启动项,需要重新停用。
 /// </summary>
@@ -21,6 +22,7 @@ public sealed class StartupController
         StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine =>
             ControlResult.Fail("RunOnce 是一次性自启项,不受启用/停用控制,只能删除或等它自行执行"),
         StartupSource.StartupFolderCurrentUser or StartupSource.StartupFolderAllUsers => ToggleStartupFolder(entry, enable),
+        StartupSource.PackagedAppStartupTask => PackagedApps.SetEnabled(entry, enable),
         StartupSource.ScheduledTask => ToggleTask(entry, enable),
         StartupSource.Service => ToggleService(entry, enable),
         _ => ControlResult.Fail("不支持的来源"),
@@ -31,10 +33,40 @@ public sealed class StartupController
         StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine
             or StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine => DeleteRegistry(entry),
         StartupSource.StartupFolderCurrentUser or StartupSource.StartupFolderAllUsers => DeleteStartupFolder(entry),
+        StartupSource.PackagedAppStartupTask =>
+            ControlResult.Fail("打包应用的启动任务只能停用、不能删除(任务管理器也一样)"),
         StartupSource.ScheduledTask => DeleteTask(entry),
         StartupSource.Service => ControlResult.Fail("为避免误伤系统,本工具不删除服务(可先停用)。"),
         _ => ControlResult.Fail("不支持的来源"),
     };
+
+    /// <summary>
+    /// 批量删除:每删掉一项之前先抓一份原始信息,之后可以用"撤销上次删除"还原。
+    /// </summary>
+    public DeleteResult Delete(IReadOnlyList<StartupEntry> entries)
+    {
+        var backups = new List<BackupItem>();
+        var failures = new List<string>();
+        var deleted = 0;
+
+        foreach (var entry in entries)
+        {
+            // 先备份后删除,顺序不能反
+            var captured = BackupStore.Capture(entry);
+            var result = Delete(entry);
+
+            if (!result.Success)
+            {
+                failures.Add($"{entry.Name}:{result.Message}");
+                continue;
+            }
+
+            deleted++;
+            if (captured is not null) backups.Add(captured);
+        }
+
+        return new DeleteResult { DeletedCount = deleted, Failures = failures, Backup = backups };
+    }
 
     // ---------------- 注册表 ----------------
 
@@ -265,4 +297,12 @@ public sealed class StartupController
             return ControlResult.Fail(ex.Message);
         }
     }
+}
+
+/// <summary>批量删除的结果:删掉了几项、备份内容、失败原因。</summary>
+public sealed class DeleteResult
+{
+    public int DeletedCount { get; init; }
+    public IReadOnlyList<BackupItem> Backup { get; init; } = Array.Empty<BackupItem>();
+    public IReadOnlyList<string> Failures { get; init; } = Array.Empty<string>();
 }
