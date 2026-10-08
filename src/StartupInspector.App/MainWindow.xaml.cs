@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -60,17 +60,20 @@ public partial class MainWindow : Window
 
     // ---------------- 扫描 ----------------
 
-    private void Rescan()
+    private async void Rescan()
     {
+        ScanButton.IsEnabled = false;
         Mouse.OverrideCursor = Cursors.Wait;
         try
         {
-            var entries = _scanner.Scan();
+            // 扫描要读注册表 / 计划任务 / 服务,放到后台线程执行,避免界面卡住。
+            var result = await Task.Run(() => _scanner.Scan());
             _rows.Clear();
-            foreach (var entry in entries)
+            foreach (var entry in result.Entries)
                 _rows.Add(new EntryRow(entry));
             _view.Refresh();
-            UpdateStatus(entries);
+            UpdateStatus(result);
+            UpdateActionState();
             _ = LoadIconsAsync(_rows.ToList());
         }
         catch (Exception ex)
@@ -80,6 +83,7 @@ public partial class MainWindow : Window
         finally
         {
             Mouse.OverrideCursor = null;
+            ScanButton.IsEnabled = true;
         }
     }
 
@@ -93,8 +97,9 @@ public partial class MainWindow : Window
             item.Row.Icon = item.Icon;
     }
 
-    private void UpdateStatus(IReadOnlyList<StartupEntry> entries)
+    private void UpdateStatus(ScanResult result)
     {
+        var entries = result.Entries;
         var enabled = entries.Count(e => e.Status == StartupStatus.Enabled);
         var disabled = entries.Count(e => e.Status == StartupStatus.Disabled);
         var elevated = Elevation.IsElevated();
@@ -115,6 +120,36 @@ public partial class MainWindow : Window
         }
 
         ElevateButton.Visibility = elevated ? Visibility.Collapsed : Visibility.Visible;
+
+        if (result.Warnings.Count == 0)
+        {
+            WarnText.Visibility = Visibility.Collapsed;
+            WarnText.Text = "";
+            WarnText.ToolTip = null;
+        }
+        else
+        {
+            WarnText.Visibility = Visibility.Visible;
+            WarnText.Text = $"⚠ {result.Warnings.Count} 个来源读取失败";
+            WarnText.ToolTip = string.Join(Environment.NewLine, result.Warnings);
+        }
+    }
+
+    private void Grid_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActionState();
+
+    /// <summary>RunOnce 是一次性条目,不受启用/停用控制,选中它时把这两个菜单项灰掉。</summary>
+    private void UpdateActionState()
+    {
+        var rows = Grid.SelectedItems.Cast<EntryRow>().ToList();
+        var hasUntoggleable = rows.Any(r => !r.Entry.CanToggle);
+        var canToggle = rows.Count > 0 && !hasUntoggleable;
+
+        EnableMenuItem.IsEnabled = canToggle;
+        DisableMenuItem.IsEnabled = canToggle;
+
+        var reason = hasUntoggleable ? "RunOnce 是一次性自启项,只能删除" : null;
+        EnableMenuItem.ToolTip = reason;
+        DisableMenuItem.ToolTip = reason;
     }
 
     private void ScanButton_Click(object sender, RoutedEventArgs e) => Rescan();
@@ -163,7 +198,10 @@ public partial class MainWindow : Window
         }
 
         var verb = enable ? "启用" : "停用";
-        var confirm = MessageBox.Show($"确定要{verb}所选的 {rows.Count} 项吗?", verb,
+        var serviceNote = !enable && rows.Any(r => r.Entry.Source == StartupSource.Service)
+            ? "\n\n注意:停用后的服务不再是自动启动,重新扫描时不会出现在列表里;需要恢复时请用服务管理器。"
+            : "";
+        var confirm = MessageBox.Show($"确定要{verb}所选的 {rows.Count} 项吗?{serviceNote}", verb,
             MessageBoxButton.OKCancel, MessageBoxImage.Question);
         if (confirm != MessageBoxResult.OK) return;
 
@@ -302,6 +340,7 @@ public partial class MainWindow : Window
         if (kind == "csv") StartupExporter.SaveCsv(dialog.FileName, entries);
         else StartupExporter.SaveJson(dialog.FileName, entries);
 
-        MessageBox.Show($"已导出 {entries.Count} 条到:\n{dialog.FileName}", "导出完成");
+        var filtered = entries.Count != _rows.Count ? "(仅当前筛选结果)" : "";
+        MessageBox.Show($"已导出 {entries.Count} 条{filtered}到:\n{dialog.FileName}", "导出完成");
     }
 }

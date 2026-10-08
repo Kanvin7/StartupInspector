@@ -6,7 +6,8 @@ namespace StartupInspector.Core;
 
 /// <summary>
 /// 对自启项执行"启用 / 停用 / 删除"。停用一律采用 Windows 自己的机制:
-///   注册表  —— 写入 Explorer\StartupApproved\Run(或 Run32)的启用/禁用标记,与任务管理器完全一致
+///   注册表 Run —— 写入 Explorer\StartupApproved\Run(或 Run32)的启用/禁用标记,与任务管理器完全一致
+///   注册表 RunOnce —— 不支持停用(该机制不作用于 RunOnce),只能删除
 ///   启动文件夹 —— 写入 Explorer\StartupApproved\StartupFolder 的标记(文件保留在原处)
 ///   计划任务 —— 修改 Enabled 标志后重新注册
 ///   服务    —— 通过 sc config 修改启动类型(需要管理员)
@@ -17,6 +18,8 @@ public sealed class StartupController
     public ControlResult SetEnabled(StartupEntry entry, bool enable) => entry.Source switch
     {
         StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine => ToggleRegistry(entry, enable),
+        StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine =>
+            ControlResult.Fail("RunOnce 是一次性自启项,不受启用/停用控制,只能删除或等它自行执行"),
         StartupSource.StartupFolderCurrentUser or StartupSource.StartupFolderAllUsers => ToggleStartupFolder(entry, enable),
         StartupSource.ScheduledTask => ToggleTask(entry, enable),
         StartupSource.Service => ToggleService(entry, enable),
@@ -25,7 +28,8 @@ public sealed class StartupController
 
     public ControlResult Delete(StartupEntry entry) => entry.Source switch
     {
-        StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine => DeleteRegistry(entry),
+        StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine
+            or StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine => DeleteRegistry(entry),
         StartupSource.StartupFolderCurrentUser or StartupSource.StartupFolderAllUsers => DeleteStartupFolder(entry),
         StartupSource.ScheduledTask => DeleteTask(entry),
         StartupSource.Service => ControlResult.Fail("为避免误伤系统,本工具不删除服务(可先停用)。"),
@@ -136,6 +140,18 @@ public sealed class StartupController
                 ? RegistryHive.LocalMachine
                 : RegistryHive.CurrentUser;
 
+            // 条目本来就在 Disabled 子目录里时,只写标志不会让它重新生效,必须先把文件移回上级目录。
+            if (enable && entry.InDisabledSubfolder)
+            {
+                var disabledDirectory = Path.GetDirectoryName(file);
+                var startupDirectory = disabledDirectory is null ? null : Path.GetDirectoryName(disabledDirectory);
+                if (startupDirectory is null) return ControlResult.Fail("找不到上级启动文件夹");
+
+                var target = Path.Combine(startupDirectory, Path.GetFileName(file));
+                if (File.Exists(target)) return ControlResult.Fail($"启动文件夹中已存在同名文件,未移动:{target}");
+                File.Move(file, target);
+            }
+
             StartupApproval.SetFolderDisabled(hive, Path.GetFileName(file), !enable);
             return ControlResult.Ok(enable ? "已启用" : "已停用");
         }
@@ -219,7 +235,10 @@ public sealed class StartupController
 
         try
         {
-            var start = enable ? "auto" : "disabled";
+            // 原本是"自动(延迟启动)"的服务,重新启用时要保留延迟启动。
+            var start = enable
+                ? (entry.IsDelayedAutoStart ? "delayed-auto" : "auto")
+                : "disabled";
             var psi = new ProcessStartInfo
             {
                 FileName = "sc.exe",

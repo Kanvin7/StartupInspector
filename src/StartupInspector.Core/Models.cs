@@ -7,7 +7,9 @@ namespace StartupInspector.Core;
 public enum StartupSource
 {
     RegistryRunCurrentUser,
+    RegistryRunOnceCurrentUser,
     RegistryRunLocalMachine,
+    RegistryRunOnceLocalMachine,
     StartupFolderCurrentUser,
     StartupFolderAllUsers,
     ScheduledTask,
@@ -46,6 +48,17 @@ public sealed class StartupEntry
     /// <summary>目标可执行文件已不存在(残留项)。</summary>
     public bool IsOrphaned { get; init; }
 
+    /// <summary>
+    /// RunOnce 是一次性自启项:命令执行后条目会被 Windows 自行删除,
+    /// 也不受 StartupApproved 开关控制,因此只能删除、不能"停用"。
+    /// </summary>
+    [JsonIgnore]
+    public bool IsRunOnce => Source is StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine;
+
+    /// <summary>该条目是否支持"启用 / 停用"。</summary>
+    [JsonIgnore]
+    public bool CanToggle => !IsRunOnce;
+
     [JsonIgnore] internal RegistryHive Hive { get; init; }
     [JsonIgnore] internal RegistryView View { get; init; }
     [JsonIgnore] internal string? RegistryPath { get; init; }
@@ -53,6 +66,21 @@ public sealed class StartupEntry
     [JsonIgnore] internal string? FileFullPath { get; init; }
     [JsonIgnore] internal string? TaskPath { get; init; }
     [JsonIgnore] internal string? ServiceName { get; init; }
+
+    /// <summary>服务是否为"自动(延迟启动)"。</summary>
+    [JsonIgnore] internal bool IsDelayedAutoStart { get; init; }
+
+    /// <summary>条目来自启动文件夹下的 Disabled 子目录。</summary>
+    [JsonIgnore] internal bool InDisabledSubfolder { get; init; }
+}
+
+/// <summary>一次扫描的结果:条目,以及读取失败的来源说明。</summary>
+public sealed class ScanResult
+{
+    public IReadOnlyList<StartupEntry> Entries { get; init; } = Array.Empty<StartupEntry>();
+
+    /// <summary>某个来源整体读取失败时的说明;个别条目失败不计入。</summary>
+    public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>启用/停用/删除的结果。</summary>
@@ -71,7 +99,9 @@ public static class StartupLabels
     public static string SourceText(StartupSource source) => source switch
     {
         StartupSource.RegistryRunCurrentUser => "注册表 Run (当前用户)",
+        StartupSource.RegistryRunOnceCurrentUser => "注册表 RunOnce (当前用户)",
         StartupSource.RegistryRunLocalMachine => "注册表 Run (本机)",
+        StartupSource.RegistryRunOnceLocalMachine => "注册表 RunOnce (本机)",
         StartupSource.StartupFolderCurrentUser => "启动文件夹 (当前用户)",
         StartupSource.StartupFolderAllUsers => "启动文件夹 (所有用户)",
         StartupSource.ScheduledTask => "计划任务",

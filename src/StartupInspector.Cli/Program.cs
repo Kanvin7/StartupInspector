@@ -3,10 +3,14 @@ using StartupInspector.Core;
 
 Console.OutputEncoding = Encoding.UTF8;
 
-var entries = new StartupScanner().Scan();
+var (mode, outPath) = ParseArgs(args);
 
-var mode = args.FirstOrDefault(a => !a.StartsWith("--"))?.ToLowerInvariant() ?? "scan";
-var outPath = GetOption(args, "--out");
+var result = new StartupScanner().Scan();
+var entries = result.Entries;
+
+// 来源整体读取失败时写到标准错误,导出到文件时也能在控制台看到。
+foreach (var warning in result.Warnings)
+    Console.Error.WriteLine($"警告:{warning}");
 
 switch (mode)
 {
@@ -39,14 +43,28 @@ switch (mode)
         break;
 }
 
-static string? GetOption(string[] arguments, string name)
+// 第一个非选项参数作为子命令(scan/csv/json);支持 --out/-o 指定输出文件。
+// 逐项解析而不是"取第一个不以 -- 开头的参数",避免把 --out 的值当成子命令。
+static (string Mode, string? OutPath) ParseArgs(string[] arguments)
 {
-    for (var i = 0; i < arguments.Length - 1; i++)
+    var mode = "scan";
+    string? outPath = null;
+
+    for (var i = 0; i < arguments.Length; i++)
     {
-        if (string.Equals(arguments[i], name, StringComparison.OrdinalIgnoreCase))
-            return arguments[i + 1];
+        var arg = arguments[i];
+        if (string.Equals(arg, "--out", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(arg, "-o", StringComparison.OrdinalIgnoreCase))
+        {
+            if (i + 1 < arguments.Length) outPath = arguments[++i];
+            continue;
+        }
+
+        if (arg.StartsWith("-", StringComparison.Ordinal)) continue;
+        mode = arg.ToLowerInvariant();
     }
-    return null;
+
+    return (mode, outPath);
 }
 
 static void PrintTable(IReadOnlyList<StartupEntry> entries)
@@ -70,4 +88,3 @@ static void PrintTable(IReadOnlyList<StartupEntry> entries)
         Console.WriteLine();
     }
 }
-

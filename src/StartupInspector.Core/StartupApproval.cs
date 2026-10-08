@@ -18,7 +18,14 @@ internal static class StartupApproval
         => FirstByte(hive, RunSubKey(is32Bit), valueName) == StateDisabled;
 
     public static bool IsFolderDisabled(RegistryHive hive, string fileName)
-        => FirstByte(hive, FolderSubKey, fileName) == StateDisabled;
+    {
+        // Windows 会同时写 "xxx.lnk" 和 "xxx" 两个值名,第三方工具可能只写其中一个,这里两个都查。
+        if (FirstByte(hive, FolderSubKey, fileName) == StateDisabled) return true;
+
+        var withoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        return !string.Equals(withoutExtension, fileName, StringComparison.OrdinalIgnoreCase)
+            && FirstByte(hive, FolderSubKey, withoutExtension) == StateDisabled;
+    }
 
     public static void SetRunDisabled(RegistryHive hive, bool is32Bit, string valueName, bool disabled)
         => Write(hive, RunSubKey(is32Bit), valueName, disabled);

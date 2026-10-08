@@ -11,24 +11,28 @@ namespace StartupInspector.Core;
 /// </summary>
 public sealed class StartupScanner
 {
-    public IReadOnlyList<StartupEntry> Scan()
+    public ScanResult Scan()
     {
         var items = new List<StartupEntry>();
-        TryAdd(items, ScanRegistryRun);
-        TryAdd(items, ScanStartupFolders);
-        TryAdd(items, ScanScheduledTasks);
-        TryAdd(items, ScanServices);
+        var warnings = new List<string>();
+        TryAdd(items, warnings, "注册表启动项", ScanRegistryRun);
+        TryAdd(items, warnings, "启动文件夹", ScanStartupFolders);
+        TryAdd(items, warnings, "计划任务", ScanScheduledTasks);
+        TryAdd(items, warnings, "系统服务", ScanServices);
 
-        return items
+        var entries = items
             .OrderBy(i => i.Source)
             .ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+
+        return new ScanResult { Entries = entries, Warnings = warnings };
     }
 
-    private static void TryAdd(List<StartupEntry> sink, Func<IEnumerable<StartupEntry>> producer)
+    /// <summary>单个来源整体失败时记一条警告,避免与"该来源本来就没有条目"混为一谈。</summary>
+    private static void TryAdd(List<StartupEntry> sink, List<string> warnings, string label, Func<IEnumerable<StartupEntry>> producer)
     {
         try { sink.AddRange(producer()); }
-        catch { /* 单个来源失败不应影响其他来源 */ }
+        catch (Exception ex) { warnings.Add($"{label}:读取失败({ex.Message})"); }
     }
 
     // ================= 注册表 Run / RunOnce =================
@@ -36,13 +40,13 @@ public sealed class StartupScanner
     private static readonly (RegistryHive Hive, RegistryView View, string SubKey, StartupSource Source)[] RunKeys =
     {
         (RegistryHive.CurrentUser, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupSource.RegistryRunCurrentUser),
-        (RegistryHive.CurrentUser, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunCurrentUser),
+        (RegistryHive.CurrentUser, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunOnceCurrentUser),
         (RegistryHive.CurrentUser, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupSource.RegistryRunCurrentUser),
-        (RegistryHive.CurrentUser, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunCurrentUser),
+        (RegistryHive.CurrentUser, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunOnceCurrentUser),
         (RegistryHive.LocalMachine, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupSource.RegistryRunLocalMachine),
-        (RegistryHive.LocalMachine, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunLocalMachine),
+        (RegistryHive.LocalMachine, RegistryView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunOnceLocalMachine),
         (RegistryHive.LocalMachine, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupSource.RegistryRunLocalMachine),
-        (RegistryHive.LocalMachine, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunLocalMachine),
+        (RegistryHive.LocalMachine, RegistryView.Registry32, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupSource.RegistryRunOnceLocalMachine),
     };
 
     private static IEnumerable<StartupEntry> ScanRegistryRun()
@@ -50,6 +54,11 @@ public sealed class StartupScanner
         var output = new List<StartupEntry>();
         foreach (var loc in RunKeys)
         {
+            // HKCU\Software 不做 WOW64 重定向:32 位视图和 64 位视图指向同一个物理键,
+            // 两遍枚举会得到完全相同的条目。内容一致时只保留 64 位视图那一遍。
+            if (loc.View == RegistryView.Registry32 && ViewsAreIdentical(loc.Hive, loc.SubKey))
+                continue;
+
             using var baseKey = RegistryKey.OpenBaseKey(loc.Hive, loc.View);
             using var key = baseKey.OpenSubKey(loc.SubKey, writable: false);
             if (key is null) continue;
@@ -60,11 +69,12 @@ public sealed class StartupScanner
                 var raw = key.GetValue(rawName)?.ToString() ?? "";
                 if (string.IsNullOrWhiteSpace(raw)) continue;
 
-                // 真实机制:任务管理器把"已禁用"记录在 Explorer\StartupApproved 下;
-                // 同时兼容早期版本可能留下的 "!" 前缀。
-                var legacyBang = rawName.StartsWith("!", StringComparison.Ordinal);
-                var name = legacyBang ? rawName[1..] : rawName;
-                var disabled = legacyBang || StartupApproval.IsRunDisabled(loc.Hive, loc.View == RegistryView.Registry32, name);
+                // Run 的"已禁用"记录在 Explorer\StartupApproved 下,与任务管理器一致。
+                // RunOnce 的值名可以带 "!"(命令执行完再删除该值)或 "*"(安全模式下也运行)前缀,
+                // 这些是 Windows 的合法标志而不是"已停用"标记,因此 RunOnce 保留原名、也不查该标记。
+                var isRunOnce = loc.Source is StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine;
+                var name = rawName;
+                var disabled = !isRunOnce && StartupApproval.IsRunDisabled(loc.Hive, loc.View == RegistryView.Registry32, name);
                 var (exe, args) = CommandLine.Parse(raw);
                 var viewText = loc.View == RegistryView.Registry32 ? " (32 位视图)" : "";
 
@@ -90,6 +100,37 @@ public sealed class StartupScanner
             }
         }
         return output;
+    }
+
+    /// <summary>
+    /// 判断同一位置的 32 位与 64 位视图是否指向同一个物理键(HKCU\Software 不重定向时就会这样)。
+    /// 两边内容完全一致时没有必要枚举两遍,否则界面里会出现一模一样的重复条目。
+    /// </summary>
+    private static bool ViewsAreIdentical(RegistryHive hive, string subKey)
+    {
+        var view64 = Fingerprint(hive, RegistryView.Registry64, subKey);
+        return view64.Length > 0 && view64 == Fingerprint(hive, RegistryView.Registry32, subKey);
+    }
+
+    private static string Fingerprint(RegistryHive hive, RegistryView view, string subKey)
+    {
+        try
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+            using var key = baseKey.OpenSubKey(subKey, writable: false);
+            if (key is null) return "";
+
+            var values = key.GetValueNames()
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Select(n => $"{n}={key.GetValue(n)}")
+                .ToArray();
+            Array.Sort(values, StringComparer.Ordinal);
+            return string.Join("\n", values);
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     // ================= 启动文件夹 =================
@@ -144,6 +185,7 @@ public sealed class StartupScanner
                 RequiresElevation = elevation,
                 IsOrphaned = FileInfoHelper.IsOrphaned(exe),
                 FileFullPath = file,
+                InDisabledSubfolder = inDisabledSubfolder,
             };
         }
     }
@@ -161,8 +203,6 @@ public sealed class StartupScanner
 
     private static void WalkFolder(TaskSched.TaskFolder folder, List<StartupEntry> output)
     {
-        try
-        {
         foreach (var task in folder.GetTasks())
         {
             try
@@ -196,15 +236,12 @@ public sealed class StartupScanner
             }
             catch { /* 个别任务无法读取时跳过 */ }
         }
-        }
-        catch { }
 
-        try
+        foreach (var sub in folder.SubFolders)
         {
-            foreach (var sub in folder.SubFolders)
-                WalkFolder(sub, output);
+            try { WalkFolder(sub, output); }
+            catch { /* 个别子文件夹不可读时跳过 */ }
         }
-        catch { }
     }
 
     // ================= 自动启动的服务 =================
@@ -241,6 +278,7 @@ public sealed class StartupScanner
                     RequiresElevation = true,
                     IsOrphaned = FileInfoHelper.IsOrphaned(normalized),
                     ServiceName = name,
+                    IsDelayedAutoStart = delayed,
                 });
             }
             catch { /* 个别服务无法读取时跳过 */ }

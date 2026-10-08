@@ -37,7 +37,8 @@ public sealed class EntryRow : INotifyPropertyChanged
 
     public Brush SourceBrush => Entry.Source switch
     {
-        StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine => Palette.Registry,
+        StartupSource.RegistryRunCurrentUser or StartupSource.RegistryRunLocalMachine
+            or StartupSource.RegistryRunOnceCurrentUser or StartupSource.RegistryRunOnceLocalMachine => Palette.Registry,
         StartupSource.StartupFolderCurrentUser or StartupSource.StartupFolderAllUsers => Palette.Folder,
         StartupSource.ScheduledTask => Palette.Task,
         StartupSource.Service => Palette.Service,

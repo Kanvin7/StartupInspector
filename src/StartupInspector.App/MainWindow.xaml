@@ -238,7 +238,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <Button Content="重新扫描" Style="{StaticResource PrimaryButton}" Click="ScanButton_Click" />
+                <Button x:Name="ScanButton" Content="重新扫描" Style="{StaticResource PrimaryButton}" Click="ScanButton_Click" />
                 <Button Content="导出 CSV" Style="{StaticResource ToolButton}" Click="ExportCsv_Click" />
                 <Button Content="导出 JSON" Style="{StaticResource ToolButton}" Click="ExportJson_Click" />
                 <Button x:Name="ElevateButton" Content="以管理员身份重启" Style="{StaticResource ToolButton}"
@@ -269,11 +269,12 @@
 
         <DataGrid Grid.Row="2" x:Name="Grid" AutoGenerateColumns="False" IsReadOnly="True"
                   CanUserAddRows="False" SelectionMode="Extended"
+                  SelectionChanged="Grid_SelectionChanged"
                   PreviewMouseRightButtonDown="Grid_PreviewMouseRightButtonDown">
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="启用" Click="Enable_Click" />
-                    <MenuItem Header="停用" Click="Disable_Click" />
+                    <MenuItem x:Name="EnableMenuItem" Header="启用" Click="Enable_Click" ToolTipService.ShowOnDisabled="True" />
+                    <MenuItem x:Name="DisableMenuItem" Header="停用" Click="Disable_Click" ToolTipService.ShowOnDisabled="True" />
                     <MenuItem Header="删除" Click="Delete_Click" />
                     <Separator />
                     <MenuItem Header="打开文件所在位置" Click="OpenLocation_Click" />
@@ -322,6 +323,9 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Grid.Row="3" x:Name="StatusText" Margin="2,10,0,0" Foreground="{StaticResource Muted}" />
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="2,10,0,0">
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" />
+            <TextBlock x:Name="WarnText" Margin="14,0,0,0" Foreground="#FBBF24" Visibility="Collapsed" />
+        </StackPanel>
     </Grid>
 </Window>

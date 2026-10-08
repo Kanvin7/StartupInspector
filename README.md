@@ -26,7 +26,8 @@
 - 按名称 / 发布者 / 路径搜索,按来源和状态筛选。
 - 启用 / 停用 / 删除选中项,支持多选批量操作。
 - 右键菜单:打开文件所在位置、复制命令行。
-- 导出为 CSV(带 BOM,Excel 直接打开)或 JSON。
+- 导出为 CSV(带 BOM,Excel 直接打开)或 JSON;导出的是当前筛选后的结果。
+- 某个来源整体读取失败时(例如权限不足),状态栏会给出提示,而不是静默当作没有条目。
 - 需要修改 HKLM、服务或系统计划任务时,一键"以管理员身份重启"。
 
 ## 扫描的自启来源
@@ -40,18 +41,26 @@
 | 计划任务 | 带"登录时 / 开机时"触发器的任务 |
 | 系统服务 | 启动类型为"自动 / 自动(延迟)"的服务 |
 
-注册表会同时枚举 64 位与 32 位视图(即包含 `Wow6432Node`),因此同一程序
-出现在不同视图时会显示为独立条目(可通过"位置"列区分)。
+界面里 Run 与 RunOnce 是两个独立来源。RunOnce 是一次性条目,命令执行后会被 Windows
+自行删除,也没有对应的停用开关,因此界面上只能删除它。
+
+注册表会同时枚举 64 位与 32 位视图(即包含 `Wow6432Node`)。两个视图内容不同时
+(例如同一程序分别注册在 HKLM 的 64 位与 32 位视图),会显示为两条独立条目,可通过"位置"列区分;
+如果某个位置的 32 位视图与 64 位视图指向同一个物理键(例如 `HKCU\\Software`),则只显示一遍。
 
 ## 各来源的"停用"做法
 
 停用一律采用 Windows 自己的机制,不改动启动项本体:
 
-- 注册表:在 `Explorer\StartupApproved\Run`(32 位项为 `Run32`)写入禁用标记,
+- 注册表 Run:在 `Explorer\StartupApproved\Run`(32 位项为 `Run32`)写入禁用标记,
   与任务管理器"启动"选项卡的做法完全一致。
-- 启动文件夹:在 `Explorer\StartupApproved\StartupFolder` 写入禁用标记,快捷方式文件保留原位。
+- 注册表 RunOnce:不支持停用。`StartupApproved` 下只有 `Run` / `Run32` / `StartupFolder`
+  三个子项,没有 RunOnce,而且 RunOnce 条目在命令执行后会被系统删除,所以只能删除它。
+- 启动文件夹:在 `Explorer\StartupApproved\StartupFolder` 写入禁用标记,快捷方式文件保留原位;
+  `Disabled` 子目录里的快捷方式会当作"已停用"列出,启用时会把文件移回上级目录。
 - 计划任务:改为 `Enabled = false` 并重新注册。
-- 服务:通过 `sc config ... start= disabled` 修改启动类型(需要管理员)。
+- 服务:通过 `sc config ... start= disabled` 修改启动类型(需要管理员)。停用后它不再是
+  自动启动,重新扫描时不会出现在列表里;原本是延迟启动的服务,重新启用时会保留该设置。
 
 > 停用只改变"是否随开机启动",不会删除启动项本身。如果某个程序每次运行都会重建自己的启动项,
 > 停用后需要再次停用,或者直接在该程序自身的设置里关闭"开机启动"。
@@ -75,10 +84,12 @@ StartupInspectorCli.exe json --out items.json # 导出 JSON
 ```
 StartupInspector/
 ├─ StartupInspector.sln
-└─ src/
-   ├─ StartupInspector.Core/   # 扫描、启停、模型、导出(可复用)
-   ├─ StartupInspector.App/    # WPF 图形界面
-   └─ StartupInspector.Cli/    # 命令行
+├─ src/
+│  ├─ StartupInspector.Core/   # 扫描、启停、模型、导出(可复用)
+│  ├─ StartupInspector.App/    # WPF 图形界面
+│  └─ StartupInspector.Cli/    # 命令行
+└─ tests/
+   └─ StartupInspector.Core.Tests/   # 单元测试
 ```
 
 ## 构建
@@ -87,6 +98,7 @@ StartupInspector/
 
 ```
 dotnet build StartupInspector.sln -c Release
+dotnet test StartupInspector.sln -c Release
 dotnet publish src/StartupInspector.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
@@ -107,4 +119,3 @@ dotnet publish src/StartupInspector.App -c Release -r win-x64 --self-contained t
 ## 许可证
 
 本项目以 [MIT](LICENSE) 许可发布。
-

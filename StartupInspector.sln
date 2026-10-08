@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StartupInspector.App", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StartupInspector.Cli", "src\StartupInspector.Cli\StartupInspector.Cli.csproj", "{6CDC974E-9C68-4D99-9C55-C317B9A11301}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ED122764-82E5-45B6-B9C0-DB6FA63A6F75}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StartupInspector.Core.Tests", "tests\StartupInspector.Core.Tests\StartupInspector.Core.Tests.csproj", "{DC01FCD7-5C1F-41EF-8659-A56404506CB1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,10 +36,15 @@ Global
 		{6CDC974E-9C68-4D99-9C55-C317B9A11301}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CDC974E-9C68-4D99-9C55-C317B9A11301}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CDC974E-9C68-4D99-9C55-C317B9A11301}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC01FCD7-5C1F-41EF-8659-A56404506CB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC01FCD7-5C1F-41EF-8659-A56404506CB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC01FCD7-5C1F-41EF-8659-A56404506CB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC01FCD7-5C1F-41EF-8659-A56404506CB1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F9A8C3DF-D18F-4457-AE26-FABD76DC8372} = {D31A2D4C-DF7C-431E-AB50-E583E296F1D9}
 		{81B97299-2149-4368-A399-561787B41A29} = {D31A2D4C-DF7C-431E-AB50-E583E296F1D9}
 		{6CDC974E-9C68-4D99-9C55-C317B9A11301} = {D31A2D4C-DF7C-431E-AB50-E583E296F1D9}
+		{DC01FCD7-5C1F-41EF-8659-A56404506CB1} = {ED122764-82E5-45B6-B9C0-DB6FA63A6F75}
 	EndGlobalSection
 EndGlobal
