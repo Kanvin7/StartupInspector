@@ -14,15 +14,20 @@ namespace StartupInspector.App;
 
 public partial class MainWindow : Window
 {
-    private static readonly Brush PillElevatedBackground = Freeze("#14321F");
-    private static readonly Brush PillElevatedText = Freeze("#4ADE80");
-    private static readonly Brush PillNormalBackground = Freeze("#3A2E12");
-    private static readonly Brush PillNormalText = Freeze("#FBBF24");
+    /// <summary>左栏读数与筛选用的语义色,和 XAML 里是同一套。</summary>
+    private static readonly Brush AccentText = Freeze("#22D3EE");
+    private static readonly Brush AmberText = Freeze("#FBBF24");
 
     private readonly StartupScanner _scanner = new();
     private readonly StartupController _controller = new();
     private readonly ObservableCollection<EntryRow> _rows = new();
     private readonly ICollectionView _view;
+
+    /// <summary>左栏的筛选状态:all / on / off。</summary>
+    private string _stateFilter = "all";
+
+    /// <summary>是否按开机耗时从大到小排序。</summary>
+    private bool _sortByImpact;
 
     public MainWindow()
     {
@@ -36,11 +41,6 @@ public partial class MainWindow : Window
         foreach (var source in Enum.GetValues<StartupSource>())
             SourceFilter.Items.Add(StartupLabels.SourceText(source));
         SourceFilter.SelectedIndex = 0;
-
-        StatusFilter.Items.Add("全部状态");
-        StatusFilter.Items.Add("已启用");
-        StatusFilter.Items.Add("已停用");
-        StatusFilter.SelectedIndex = 0;
 
         Loaded += (_, _) => Rescan();
     }
@@ -97,45 +97,84 @@ public partial class MainWindow : Window
             item.Row.Icon = item.Icon;
     }
 
-    private void UpdateStatus(ScanResult result)
+     private void UpdateStatus(ScanResult result)
+     {
+         var entries = result.Entries;
+         var enabled = entries.Count(e => e.Status == StartupStatus.Enabled);
+         var disabled = entries.Count(e => e.Status == StartupStatus.Disabled);
+         var elevated = Elevation.IsElevated();
+         var slowest = entries.Where(e => e.StartupMilliseconds is not null)
+                              .Select(e => e.StartupMilliseconds!.Value)
+                              .DefaultIfEmpty(-1)
+                              .Max();
+ 
+         TotalText.Text = entries.Count.ToString();
+         EnabledText.Text = enabled.ToString();
+         DisabledText.Text = disabled.ToString();
+         SlowestText.Text = slowest < 0 ? "—" : StartupImpact.Describe(slowest)!;
+         ScanTimeText.Text = $"扫描时间 {DateTime.Now:HH:mm:ss}";
+         AllCountText.Text = entries.Count.ToString();
+         OnCountText.Text = enabled.ToString();
+         OffCountText.Text = disabled.ToString();
+ 
+         if (elevated)
+         {
+             ElevationText.Foreground = AccentText;
+             ElevationText.Text = "开机自启项 · 管理员权限";
+         }
+         else
+         {
+             ElevationText.Foreground = AmberText;
+             ElevationText.Text = "开机自启项 · 普通用户,改系统项需提权";
+         }
+ 
+         ElevateButton.Visibility = elevated ? Visibility.Collapsed : Visibility.Visible;
+ 
+         if (result.Warnings.Count == 0)
+         {
+             WarnText.Visibility = Visibility.Collapsed;
+             WarnText.Text = "";
+             WarnText.ToolTip = null;
+         }
+         else
+         {
+             WarnText.Visibility = Visibility.Visible;
+             WarnText.Text = $"⚠ {result.Warnings.Count} 个来源读取失败";
+             WarnText.ToolTip = string.Join(Environment.NewLine, result.Warnings);
+         }
+ 
+         UpdateFilterSummary();
+     }
+
+    private void Grid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var entries = result.Entries;
-        var enabled = entries.Count(e => e.Status == StartupStatus.Enabled);
-        var disabled = entries.Count(e => e.Status == StartupStatus.Disabled);
-        var elevated = Elevation.IsElevated();
-
-        StatusText.Text = $"共 {entries.Count} 条   ·   已启用 {enabled}   ·   已停用 {disabled}   ·   扫描时间 {DateTime.Now:HH:mm:ss}";
-
-        if (elevated)
-        {
-            ElevationPill.Background = PillElevatedBackground;
-            ElevationText.Foreground = PillElevatedText;
-            ElevationText.Text = "管理员权限";
-        }
-        else
-        {
-            ElevationPill.Background = PillNormalBackground;
-            ElevationText.Foreground = PillNormalText;
-            ElevationText.Text = "普通用户 · 修改系统项需提权";
-        }
-
-        ElevateButton.Visibility = elevated ? Visibility.Collapsed : Visibility.Visible;
-
-        if (result.Warnings.Count == 0)
-        {
-            WarnText.Visibility = Visibility.Collapsed;
-            WarnText.Text = "";
-            WarnText.ToolTip = null;
-        }
-        else
-        {
-            WarnText.Visibility = Visibility.Visible;
-            WarnText.Text = $"⚠ {result.Warnings.Count} 个来源读取失败";
-            WarnText.ToolTip = string.Join(Environment.NewLine, result.Warnings);
-        }
+        UpdateActionState();
+        UpdateDetail();
     }
 
-    private void Grid_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActionState();
+    /// <summary>底部那一行:选中单项时显示它的完整命令行和位置。</summary>
+    private void UpdateDetail()
+    {
+        var rows = Grid.SelectedItems.Cast<EntryRow>().ToList();
+
+        if (rows.Count == 0)
+        {
+            DetailText.Text = "选中一行查看完整命令行";
+            DetailText.ToolTip = null;
+            return;
+        }
+
+        if (rows.Count > 1)
+        {
+            DetailText.Text = $"已选 {rows.Count} 项 · 右键可批量启用 / 停用 / 删除";
+            DetailText.ToolTip = null;
+            return;
+        }
+
+        var entry = rows[0].Entry;
+        DetailText.Text = $"{entry.CommandLine}    ·    {entry.Location}";
+        DetailText.ToolTip = entry.CommandLine;
+    }
 
     /// <summary>RunOnce 是一次性条目,不受启用/停用控制,选中它时把这两个菜单项灰掉。</summary>
     private void UpdateActionState()
@@ -176,11 +215,50 @@ public partial class MainWindow : Window
             && !string.Equals(sourceText, row.SourceText, StringComparison.Ordinal))
             return false;
 
-        if (StatusFilter?.SelectedIndex > 0 && StatusFilter.SelectedItem is string statusText
-            && !string.Equals(statusText, row.StatusText, StringComparison.Ordinal))
-            return false;
+        if (_stateFilter != "all")
+        {
+            var wanted = _stateFilter == "on" ? StartupStatus.Enabled : StartupStatus.Disabled;
+            if (row.Entry.Status != wanted) return false;
+        }
 
         return true;
+    }
+
+    private void StateFilter_Checked(object sender, RoutedEventArgs e)
+    {
+        _stateFilter = ReferenceEquals(sender, OnFilter) ? "on"
+            : ReferenceEquals(sender, OffFilter) ? "off"
+            : "all";
+
+        // 初始选中的那个单选按钮在 InitializeComponent 期间就会触发一次,所以这里都要判空。
+        _view?.Refresh();
+        if (FilterSummaryText is not null) UpdateFilterSummary();
+    }
+
+    private void SortByImpact_Changed(object sender, RoutedEventArgs e)
+    {
+        _sortByImpact = SortByImpactToggle?.IsChecked == true;
+        ApplySort();
+    }
+
+    /// <summary>按开机耗时从大到小排;取消勾选就回到默认顺序。</summary>
+    private void ApplySort()
+    {
+        if (_view is null) return;
+
+        using (_view.DeferRefresh())
+        {
+            _view.SortDescriptions.Clear();
+            if (_sortByImpact)
+                _view.SortDescriptions.Add(
+                    new SortDescription(nameof(EntryRow.ImpactMilliseconds), ListSortDirection.Descending));
+        }
+    }
+
+    private void UpdateFilterSummary()
+    {
+        if (FilterSummaryText is null) return;
+        FilterSummaryText.Text = $"筛选后 {_view.Cast<object>().Count()} 条 / 共 {_rows.Count} 条";
     }
 
     // ---------------- 操作 ----------------
