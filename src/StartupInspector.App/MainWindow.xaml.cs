@@ -16,7 +16,6 @@ namespace StartupInspector.App;
 public partial class MainWindow : Window
 {
     /// <summary>左栏读数与筛选用的语义色,和 XAML 里是同一套。</summary>
-    private static readonly Brush AccentText = Freeze("#22D3EE");
     private static readonly Brush AmberText = Freeze("#FBBF24");
     private static readonly Brush OkText = Freeze("#7DD3A0");
     private static readonly Brush ErrorText = Freeze("#FB7185");
@@ -35,6 +34,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        
+        ApplyStartupAppearance();
 
         _view = CollectionViewSource.GetDefaultView(_rows);
         _view.Filter = FilterPredicate;
@@ -92,7 +93,7 @@ public partial class MainWindow : Window
             NoticeKind.Success => OkText,
             NoticeKind.Warning => AmberText,
             NoticeKind.Error => ErrorText,
-            _ => AccentText,
+            _ => (Brush)FindResource("Accent"),
         };
 
         NoticeText.Text = message;
@@ -148,6 +149,98 @@ public partial class MainWindow : Window
     private void NoticeNo_Click(object sender, RoutedEventArgs e) => ResolveConfirm(false);
     private void NoticeClose_Click(object sender, RoutedEventArgs e) => ResolveConfirm(false);
 
+    // ---------------- 设置 / 关于 ----------------
+    
+    private void Settings_Click(object sender, RoutedEventArgs e) => TogglePanel(SettingsPanel);
+    private void About_Click(object sender, RoutedEventArgs e) => TogglePanel(AboutPanel);
+    
+    private void ClosePanel_Click(object sender, RoutedEventArgs e) => HidePanels();
+    private void OverlayBackdrop_Click(object sender, MouseButtonEventArgs e) => HidePanels();
+    
+    /// <summary>再点一次同一个入口就收起来。</summary>
+    private void TogglePanel(UIElement panel)
+    {
+        var show = panel.Visibility != Visibility.Visible;
+        HidePanels();
+        if (!show) return;
+    
+        panel.Visibility = Visibility.Visible;
+        PanelOverlay.Visibility = Visibility.Visible;
+    }
+    
+    private void HidePanels()
+    {
+        PanelOverlay.Visibility = Visibility.Collapsed;
+        SettingsPanel.Visibility = Visibility.Collapsed;
+        AboutPanel.Visibility = Visibility.Collapsed;
+    }
+    
+    private void RepoLink_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("https://github.com/Kanvin7/StartupInspector") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            NotifyError("打不开链接", ex.Message);
+        }
+    }
+    
+    // ---------------- 主题色 ----------------
+    
+    /// <summary>启动时读取上次选的主题色,顺便把"关于"里的版本号填上。</summary>
+    private void ApplyStartupAppearance()
+    {
+        var saved = AppSettings.LoadAccent();
+        var dot = AccentDots().FirstOrDefault(d => string.Equals(d.Tag as string, saved, StringComparison.OrdinalIgnoreCase));
+        if (dot is not null) dot.IsChecked = true;   // 会触发 AccentDot_Checked
+        else ApplyAccent(saved);
+    
+        var version = Environment.ProcessPath is { } path
+            ? System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileVersion
+            : null;
+        AboutVersionText.Text = $"版本 {version ?? "未知"} · MIT 许可";
+    }
+    
+    private IEnumerable<RadioButton> AccentDots()
+    {
+        yield return AccentCyan;
+        yield return AccentViolet;
+        yield return AccentGreen;
+        yield return AccentAmber;
+        yield return AccentPink;
+        yield return AccentBlue;
+    }
+    
+    private void AccentDot_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton { Tag: string hex } && hex.Length > 0) ApplyAccent(hex);
+    }
+    
+    /// <summary>换主题色:强调色和它的几种派生描边/底色一起改,状态色(绿 / 琥珀 / 红)不动。</summary>
+    private void ApplyAccent(string hex)
+    {
+        Color accent;
+        try { accent = (Color)ColorConverter.ConvertFromString(hex); }
+        catch { return; }
+    
+        SetBrushColor("Accent", accent);
+        SetBrushColor("Line", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
+        SetBrushColor("LineSoft", Color.FromArgb(0x26, accent.R, accent.G, accent.B));
+        SetBrushColor("AccentDim", Color.FromArgb(0x24, accent.R, accent.G, accent.B));
+        SetBrushColor("Hover", Color.FromArgb(0x12, accent.R, accent.G, accent.B));
+        SetBrushColor("AccentGhost", Color.FromArgb(0x1A, accent.R, accent.G, accent.B));
+        SetBrushColor("AccentMuted", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
+    
+        AppSettings.SaveAccent(hex);
+    }
+    
+    private void SetBrushColor(string key, Color color)
+    {
+        if (Resources[key] is SolidColorBrush { IsFrozen: false } brush) brush.Color = color;
+    }
+    
     // ---------------- 扫描 ----------------
 
     private async void Rescan()
@@ -224,7 +317,7 @@ public partial class MainWindow : Window
  
          if (elevated)
          {
-             ElevationText.Foreground = AccentText;
+            ElevationText.Foreground = (Brush)FindResource("Accent");
              ElevationText.Text = "开机自启项 · 管理员权限";
          }
          else

@@ -1,4 +1,4 @@
-<Window x:Class="StartupInspector.App.MainWindow"
+﻿<Window x:Class="StartupInspector.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="StartupInspector — 开机自启检测" Height="800" Width="1260" MinHeight="620" MinWidth="1000"
@@ -16,6 +16,9 @@
         <SolidColorBrush x:Key="Muted" Color="#6B8F9C" />
         <SolidColorBrush x:Key="Accent" Color="#22D3EE" />
         <SolidColorBrush x:Key="AccentDim" Color="#2422D3EE" />
+        <!-- 主题色派生出来的描边 / 底色,换主题色时跟着一起变 -->
+        <SolidColorBrush x:Key="AccentGhost" Color="#1A22D3EE" />
+        <SolidColorBrush x:Key="AccentMuted" Color="#3A22D3EE" />
         <SolidColorBrush x:Key="Hover" Color="#1222D3EE" />
 
         <!-- 覆盖系统色,让下拉弹层 / 右键菜单 / 滚动条等默认模板跟着变深 -->
@@ -41,7 +44,7 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border Background="#3A22D3EE" CornerRadius="4" Margin="2,0" />
+                                                <Border Background="{StaticResource AccentMuted}" CornerRadius="4" Margin="2,0" />
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -123,6 +126,57 @@
         </Style>
 
         <!-- 左栏筛选:单选按钮做成描边列表项 -->
+<!-- 左栏底部入口:关于 / 设置 -->
+<Style x:Key="RailNav" TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="Button">
+                <Border x:Name="bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                        CornerRadius="4" Padding="10,8">
+                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
+                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Line}" />
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+
+<!-- 设置里的主题色圆点 -->
+<Style x:Key="AccentDot" TargetType="RadioButton">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Margin" Value="0,0,10,0" />
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="RadioButton">
+                <Grid Width="28" Height="28">
+                    <Ellipse x:Name="ring" Stroke="Transparent" StrokeThickness="2" />
+                    <Ellipse Width="18" Height="18" Fill="{TemplateBinding Background}" />
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="ring" Property="Stroke" Value="{StaticResource Muted}" />
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="ring" Property="Stroke" Value="{StaticResource Accent}" />
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+
         <Style x:Key="RailRadio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource Text}" />
             <Setter Property="FontSize" Value="12" />
@@ -258,7 +312,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="RowBackground" Value="Transparent" />
             <Setter Property="AlternatingRowBackground" Value="Transparent" />
-            <Setter Property="HorizontalGridLinesBrush" Value="#1A22D3EE" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource AccentGhost}" />
             <Setter Property="VerticalGridLinesBrush" Value="Transparent" />
             <Setter Property="GridLinesVisibility" Value="Horizontal" />
             <Setter Property="HeadersVisibility" Value="Column" />
@@ -358,7 +412,7 @@
                         <TextBlock x:Name="SlowestText" Text="—" HorizontalAlignment="Right" FontSize="12" Foreground="#FB7185" />
                     </Grid>
                     <Border Height="1" Background="{StaticResource LineSoft}" />
-                    <Border x:Name="SplitBar" Height="4" CornerRadius="2" Margin="0,10,0,0" Background="#1A22D3EE">
+                    <Border x:Name="SplitBar" Height="4" CornerRadius="2" Margin="0,10,0,0" Background="{StaticResource AccentGhost}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition x:Name="SplitOnColumn" Width="*" />
@@ -401,8 +455,23 @@
                                   Content="按耗时排序" Checked="SortByImpact_Changed" Unchecked="SortByImpact_Changed" />
                 </StackPanel>
 
-                <Button Grid.Row="4" x:Name="ElevateButton" Style="{StaticResource NeonButton}" Margin="0"
-                        Content="以管理员身份重启" Click="Elevate_Click" />
+                <StackPanel Grid.Row="4">
+                    <Button x:Name="ElevateButton" Style="{StaticResource NeonButton}" Margin="0,0,0,10"
+                            HorizontalAlignment="Stretch" Content="以管理员身份重启" Click="Elevate_Click" />
+                    <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,0,0,4" />
+                    <Button Style="{StaticResource RailNav}" Click="About_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <TextBlock Text="关于" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource RailNav}" Click="Settings_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <TextBlock Text="设置" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -553,6 +622,55 @@
                 <TextBlock x:Name="DetailLocationText" Margin="0,3,0,0" FontSize="11" Foreground="{StaticResource Muted}"
                            TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
             </StackPanel>
+            <!-- 设置 / 关于:盖在主区上的两层面板 -->
+            <Grid x:Name="PanelOverlay" Grid.RowSpan="5" Visibility="Collapsed">
+                <Border Background="#B2000000" MouseLeftButtonDown="OverlayBackdrop_Click" />
+                <Border x:Name="SettingsPanel" Visibility="Collapsed" Width="440" MaxHeight="430"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+                        BorderThickness="1" CornerRadius="6" Padding="18,16">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="设置" FontSize="15" Foreground="{StaticResource Accent}" />
+                            <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,12,0,0" />
+                            <TextBlock Text="主题色" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,14,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <RadioButton x:Name="AccentCyan" Style="{StaticResource AccentDot}" Background="#22D3EE" Tag="#22D3EE" ToolTip="青(默认)" Checked="AccentDot_Checked" />
+                                <RadioButton x:Name="AccentViolet" Style="{StaticResource AccentDot}" Background="#A78BFA" Tag="#A78BFA" ToolTip="紫" Checked="AccentDot_Checked" />
+                                <RadioButton x:Name="AccentGreen" Style="{StaticResource AccentDot}" Background="#7DD3A0" Tag="#7DD3A0" ToolTip="绿" Checked="AccentDot_Checked" />
+                                <RadioButton x:Name="AccentAmber" Style="{StaticResource AccentDot}" Background="#FBBF24" Tag="#FBBF24" ToolTip="琥珀" Checked="AccentDot_Checked" />
+                                <RadioButton x:Name="AccentPink" Style="{StaticResource AccentDot}" Background="#F472B6" Tag="#F472B6" ToolTip="粉" Checked="AccentDot_Checked" />
+                                <RadioButton x:Name="AccentBlue" Style="{StaticResource AccentDot}" Background="#60A5FA" Tag="#60A5FA" ToolTip="蓝" Checked="AccentDot_Checked" />
+                            </StackPanel>
+                            <TextBlock Text="只改强调色(按钮、描边、选中态),状态色不受影响;选择会记住。" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,12,0,0" TextWrapping="Wrap" />
+                            <Button Style="{StaticResource NeonButton}" Margin="0,16,0,0" HorizontalAlignment="Right" Content="关闭" Click="ClosePanel_Click" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+                <Border x:Name="AboutPanel" Visibility="Collapsed" Width="500" MaxHeight="480"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+                        BorderThickness="1" CornerRadius="6" Padding="18,16">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="关于" FontSize="15" Foreground="{StaticResource Accent}" />
+                            <TextBlock x:Name="AboutVersionText" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+                            <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,12,0,0" />
+                            <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" LineHeight="20"
+                                       Text="StartupInspector 是一个轻量的 Windows 开机自启项查看与管理工具。它把注册表 Run / RunOnce、启动文件夹、计划任务、系统服务,以及打包应用(Store / MSIX)的启动任务集中到一个列表里,可以按名称、发布者、路径搜索,按来源和状态筛选,也能按开机耗时排序。" />
+                            <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" LineHeight="20"
+                                       Text="停用一律使用 Windows 自己的机制(例如任务管理器用的 StartupApproved 标记),不会改动启动项本体;删除前会自动把原始信息备份到 %LOCALAPPDATA%\StartupInspector\backups,随时可以用工具栏的撤销删除还原。开机耗时取自 Windows 的诊断-性能日志,需要以管理员身份运行才能读取。" />
+                            <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" LineHeight="20"
+                                       Text="本项目以 MIT 许可发布;运行时依赖 TaskScheduler 与 System.ServiceProcess.ServiceController,详见 THIRD-PARTY-NOTICES.md。" />
+                            <TextBlock Margin="0,12,0,0" FontSize="12">
+                                <Hyperlink Click="RepoLink_Click" Foreground="{StaticResource Accent}">github.com/Kanvin7/StartupInspector</Hyperlink>
+                            </TextBlock>
+                            <Button Style="{StaticResource NeonButton}" Margin="0,16,0,0" HorizontalAlignment="Right" Content="关闭" Click="ClosePanel_Click" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+            
         </Grid>
     </Grid>
 </Window>
