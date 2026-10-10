@@ -8,6 +8,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using StartupInspector.Core;
 
 namespace StartupInspector.App;
@@ -17,6 +18,8 @@ public partial class MainWindow : Window
     /// <summary>左栏读数与筛选用的语义色,和 XAML 里是同一套。</summary>
     private static readonly Brush AccentText = Freeze("#22D3EE");
     private static readonly Brush AmberText = Freeze("#FBBF24");
+    private static readonly Brush OkText = Freeze("#7DD3A0");
+    private static readonly Brush ErrorText = Freeze("#FB7185");
 
     private readonly StartupScanner _scanner = new();
     private readonly StartupController _controller = new();
@@ -58,6 +61,93 @@ public partial class MainWindow : Window
         return brush;
     }
 
+    // ---------------- 面板内提示条(替代系统弹窗) ----------------
+
+    private enum NoticeKind { Info, Success, Warning, Error, Confirm }
+
+    private TaskCompletionSource<bool>? _pendingConfirm;
+    private DispatcherTimer? _noticeTimer;
+
+    private void NotifyInfo(string message, string? detail = null) => ShowNotice(NoticeKind.Info, message, detail, autoHide: true);
+    private void NotifySuccess(string message, string? detail = null) => ShowNotice(NoticeKind.Success, message, detail, autoHide: true);
+    private void NotifyError(string message, string? detail = null) => ShowNotice(NoticeKind.Error, message, detail, autoHide: false);
+
+    /// <summary>弹一条确认并等用户点"是/否";被新的提示顶掉时按"否"处理,避免调用方一直等。</summary>
+    private Task<bool> ConfirmAsync(string message, string? detail = null, string yes = "是", string no = "否")
+    {
+        _pendingConfirm?.TrySetResult(false);
+
+        ShowNotice(NoticeKind.Confirm, message, detail, autoHide: false);
+        NoticeYes.Content = yes;
+        NoticeNo.Content = no;
+
+        _pendingConfirm = new TaskCompletionSource<bool>();
+        return _pendingConfirm.Task;
+    }
+
+    private void ShowNotice(NoticeKind kind, string message, string? detail, bool autoHide)
+    {
+        var accent = kind switch
+        {
+            NoticeKind.Success => OkText,
+            NoticeKind.Warning => AmberText,
+            NoticeKind.Error => ErrorText,
+            _ => AccentText,
+        };
+
+        NoticeText.Text = message;
+        NoticeDetail.Text = detail ?? "";
+        NoticeDetail.ToolTip = string.IsNullOrEmpty(detail) ? null : detail;
+        NoticeDetail.Visibility = string.IsNullOrEmpty(detail) ? Visibility.Collapsed : Visibility.Visible;
+
+        NoticeBar.BorderBrush = accent;
+        NoticeGlyph.Foreground = accent;
+        NoticeGlyph.Text = kind switch
+        {
+            NoticeKind.Success => "\uE73E",
+            NoticeKind.Warning or NoticeKind.Error => "\uE7BA",
+            NoticeKind.Confirm => "\uE897",
+            _ => "\uE946",
+        };
+
+        var isConfirm = kind == NoticeKind.Confirm;
+        NoticeYes.Visibility = isConfirm ? Visibility.Visible : Visibility.Collapsed;
+        NoticeNo.Visibility = isConfirm ? Visibility.Visible : Visibility.Collapsed;
+        NoticeClose.Visibility = isConfirm ? Visibility.Collapsed : Visibility.Visible;
+
+        NoticeBar.Visibility = Visibility.Visible;
+
+        _noticeTimer?.Stop();
+        if (!autoHide) return;
+
+        // 普通提示 7 秒后自己收起;错误和确认要用户自己关。
+        _noticeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(7) };
+        _noticeTimer.Tick += (_, _) =>
+        {
+            _noticeTimer?.Stop();
+            HideNotice();
+        };
+        _noticeTimer.Start();
+    }
+
+    private void HideNotice()
+    {
+        _noticeTimer?.Stop();
+        NoticeBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void ResolveConfirm(bool answer)
+    {
+        var pending = _pendingConfirm;
+        _pendingConfirm = null;
+        HideNotice();
+        pending?.TrySetResult(answer);
+    }
+
+    private void NoticeYes_Click(object sender, RoutedEventArgs e) => ResolveConfirm(true);
+    private void NoticeNo_Click(object sender, RoutedEventArgs e) => ResolveConfirm(false);
+    private void NoticeClose_Click(object sender, RoutedEventArgs e) => ResolveConfirm(false);
+
     // ---------------- 扫描 ----------------
 
     private async void Rescan()
@@ -78,7 +168,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show("扫描失败:" + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            NotifyError("扫描失败", ex.Message);
         }
         finally
         {
@@ -266,74 +356,75 @@ public partial class MainWindow : Window
     private void Enable_Click(object sender, RoutedEventArgs e) => ApplyToSelection(enable: true);
     private void Disable_Click(object sender, RoutedEventArgs e) => ApplyToSelection(enable: false);
 
-    private void ApplyToSelection(bool enable)
+     private async void ApplyToSelection(bool enable)
+     {
+         var rows = Grid.SelectedItems.Cast<EntryRow>().ToList();
+         if (rows.Count == 0)
+         {
+             NotifyInfo("请先选择条目。");
+             return;
+         }
+ 
+         var verb = enable ? "启用" : "停用";
+         var note = !enable && rows.Any(r => r.Entry.Source == StartupSource.Service)
+             ? "注意:停用后的服务不再是自动启动,重新扫描时不会出现在列表里;需要恢复时请用服务管理器。"
+             : null;
+ 
+         if (!await ConfirmAsync($"确定要{verb}所选的 {rows.Count} 项吗?", note, verb, "取消")) return;
+ 
+         var failures = new List<string>();
+         var succeeded = 0;
+         foreach (var row in rows)
+         {
+             var result = _controller.SetEnabled(row.Entry, enable);
+             if (result.Success) succeeded++;
+             else failures.Add($"{row.Name}:{result.Message}");
+         }
+ 
+         Rescan();
+ 
+         if (failures.Count == 0)
+             NotifySuccess($"已{verb} {succeeded} 项");
+         else
+             NotifyError($"已{verb} {succeeded} 项,{failures.Count} 项失败", string.Join(Environment.NewLine, failures.Take(12)));
+     }
+
+    private async void Delete_Click(object sender, RoutedEventArgs e)
     {
         var rows = Grid.SelectedItems.Cast<EntryRow>().ToList();
         if (rows.Count == 0)
         {
-            MessageBox.Show("请先选择条目。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifyInfo("请先选择条目。");
             return;
         }
 
-        var verb = enable ? "启用" : "停用";
-        var serviceNote = !enable && rows.Any(r => r.Entry.Source == StartupSource.Service)
-            ? "\n\n注意:停用后的服务不再是自动启动,重新扫描时不会出现在列表里;需要恢复时请用服务管理器。"
-            : "";
-        var confirm = MessageBox.Show($"确定要{verb}所选的 {rows.Count} 项吗?{serviceNote}", verb,
-            MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (confirm != MessageBoxResult.OK) return;
-
-        var failures = new List<string>();
-        foreach (var row in rows)
-        {
-            var result = _controller.SetEnabled(row.Entry, enable);
-            if (!result.Success) failures.Add($"{row.Name}:{result.Message}");
-        }
-
-        Rescan();
-        ReportFailures(failures, verb);
-    }
-
-    private void Delete_Click(object sender, RoutedEventArgs e)
-    {
-        var rows = Grid.SelectedItems.Cast<EntryRow>().ToList();
-        if (rows.Count == 0)
-        {
-            MessageBox.Show("请先选择条目。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-         var confirm = MessageBox.Show(
-             $"确定要删除所选的 {rows.Count} 项吗?\n\n" +
-             "删除前会自动备份,之后可以用\"撤销上次删除\"还原。服务不会被删除。",
-             "删除", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
-         if (confirm != MessageBoxResult.Yes) return;
+        if (!await ConfirmAsync($"确定要删除所选的 {rows.Count} 项吗?",
+                "删除前会自动备份,之后可以用\"撤销删除\"还原。服务不会被删除。", "删除", "取消")) return;
 
          // 先备份再删除,备份文件放在 %LOCALAPPDATA%\\StartupInspector\\backups
          var result = _controller.Delete(rows.Select(r => r.Entry).ToList());
          var backupPath = BackupStore.Save(result.Backup);
          Rescan();
 
-         if (result.Failures.Count == 0)
-         {
-             var backup = backupPath is null ? "" : $"\n\n已备份到:\n{backupPath}";
-             MessageBox.Show($"已删除 {result.DeletedCount} 项。{backup}", "删除完成", MessageBoxButton.OK, MessageBoxImage.Information);
-             return;
-         }
+        if (result.Failures.Count == 0)
+        {
+            NotifySuccess($"已删除 {result.DeletedCount} 项", backupPath is null ? null : "已备份到 " + backupPath);
+            return;
+        }
 
-         var detail = string.Join("\n", result.Failures.Take(12));
-         if (result.Failures.Count > 12) detail += $"\n… 另有 {result.Failures.Count - 12} 项";
-         var summary = result.DeletedCount == 0 ? "删除失败:" : $"已删除 {result.DeletedCount} 项,以下未能删除:";
-         MessageBox.Show($"{summary}\n\n{detail}", "结果", MessageBoxButton.OK, MessageBoxImage.Warning);
-     }
+        var summary = result.DeletedCount == 0
+            ? "删除失败"
+            : $"已删除 {result.DeletedCount} 项,{result.Failures.Count} 项未能删除";
+        NotifyError(summary, string.Join(Environment.NewLine, result.Failures.Take(12)));
+    }
 
      /// <summary>把最近一次删除的内容建回来。</summary>
-     private void Undo_Click(object sender, RoutedEventArgs e)
+     private async void Undo_Click(object sender, RoutedEventArgs e)
      {
          var latest = BackupStore.LoadLatest();
          if (latest is null)
          {
-             MessageBox.Show("还没有删除记录。", "撤销上次删除", MessageBoxButton.OK, MessageBoxImage.Information);
+             NotifyInfo("还没有删除记录。");
              return;
          }
 
@@ -341,10 +432,7 @@ public partial class MainWindow : Window
          var names = string.Join("\n", file.Items.Take(12).Select(i => "· " + i.DisplayName));
          if (file.Items.Count > 12) names += $"\n… 另有 {file.Items.Count - 12} 项";
 
-         var confirm = MessageBox.Show(
-             $"将还原 {file.CreatedAt} 备份的 {file.Items.Count} 项:\n\n{names}\n\n继续吗?",
-             "撤销上次删除", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-         if (confirm != MessageBoxResult.Yes) return;
+        if (!await ConfirmAsync($"还原 {file.CreatedAt} 备份的 {file.Items.Count} 项?", names, "还原", "取消")) return;
 
          var outcomes = BackupStore.Restore(file);
          Rescan();
@@ -354,20 +442,12 @@ public partial class MainWindow : Window
          {
              // 整份都还原成功就不再重复提示,文件本身保留作为记录
              BackupStore.MarkRestored(backupPath);
-             MessageBox.Show($"已还原 {outcomes.Count} 项。", "撤销完成", MessageBoxButton.OK, MessageBoxImage.Information);
+             NotifySuccess($"已还原 {outcomes.Count} 项", "备份文件保留在 " + backupPath);
              return;
          }
 
-         var detail = string.Join("\n", failed.Take(12).Select(o => $"{o.Name}:{o.Message}"));
-         MessageBox.Show($"还原 {outcomes.Count - failed.Count} 项,{failed.Count} 项失败:\n\n{detail}", "结果", MessageBoxButton.OK, MessageBoxImage.Warning);
-     }
-
-    private static void ReportFailures(List<string> failures, string verb)
-    {
-        if (failures.Count == 0) return;
-        var detail = string.Join("\n", failures.Take(12));
-        if (failures.Count > 12) detail += $"\n… 另有 {failures.Count - 12} 项";
-        MessageBox.Show($"部分{verb}失败:\n\n{detail}", "结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+        NotifyError($"还原 {outcomes.Count - failed.Count} 项,{failed.Count} 项失败",
+            string.Join(Environment.NewLine, failed.Take(12).Select(o => $"{o.Name}:{o.Message}")));
     }
 
     private void OpenLocation_Click(object sender, RoutedEventArgs e)
@@ -388,12 +468,12 @@ public partial class MainWindow : Window
                 if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
                     Process.Start(new ProcessStartInfo("explorer.exe", folder) { UseShellExecute = true });
                 else
-                    MessageBox.Show("找不到对应的文件或目录。", "提示");
+                    NotifyInfo("找不到对应的文件或目录。");
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show("打开失败:" + ex.Message, "错误");
+            NotifyError("打开失败", ex.Message);
         }
     }
 
@@ -423,7 +503,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show("提权失败(可能被取消):" + ex.Message, "提示");
+            NotifyError("提权失败(可能被取消)", ex.Message);
         }
     }
 
@@ -447,7 +527,7 @@ public partial class MainWindow : Window
         var entries = _view.Cast<EntryRow>().Select(r => r.Entry).ToList();
         if (entries.Count == 0)
         {
-            MessageBox.Show("没有可导出的内容。", "提示");
+            NotifyInfo("没有可导出的内容。");
             return;
         }
 
@@ -462,6 +542,6 @@ public partial class MainWindow : Window
         else StartupExporter.SaveJson(dialog.FileName, entries);
 
         var filtered = entries.Count != _rows.Count ? "(仅当前筛选结果)" : "";
-        MessageBox.Show($"已导出 {entries.Count} 条{filtered}到:\n{dialog.FileName}", "导出完成");
+        NotifySuccess($"已导出 {entries.Count} 条{filtered}", dialog.FileName);
     }
 }

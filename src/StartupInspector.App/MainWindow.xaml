@@ -400,6 +400,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <DockPanel Grid.Row="0" LastChildFill="False">
@@ -499,7 +500,35 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <StackPanel Grid.Row="3" Margin="0,10,0,0">
+            <!-- 面板内的提示 / 确认条,替代系统弹窗 -->
+            <Border Grid.Row="3" x:Name="NoticeBar" Visibility="Collapsed" Margin="0,10,0,0"
+                    Background="{StaticResource PanelSoft}" BorderBrush="{StaticResource Accent}"
+                    BorderThickness="1" CornerRadius="4" Padding="11,9">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="NoticeGlyph" Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                               Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,9,0" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock x:Name="NoticeText" TextWrapping="Wrap" />
+                        <TextBlock x:Name="NoticeDetail" TextWrapping="Wrap" MaxHeight="34" FontSize="11"
+                                   Foreground="{StaticResource Muted}" Margin="0,4,0,0" Visibility="Collapsed" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <Button x:Name="NoticeYes" Content="是" Style="{StaticResource NeonPrimary}"
+                                Visibility="Collapsed" Click="NoticeYes_Click" />
+                        <Button x:Name="NoticeNo" Content="否" Style="{StaticResource NeonButton}"
+                                Visibility="Collapsed" Click="NoticeNo_Click" />
+                        <Button x:Name="NoticeClose" Content="关闭" Style="{StaticResource NeonButton}" Margin="0"
+                                Click="NoticeClose_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <StackPanel Grid.Row="4" Margin="0,10,0,0">
                 <Border Height="1" Background="{StaticResource Line}" />
                 <TextBlock Margin="0,9,0,0" FontSize="11" Foreground="{StaticResource Muted}"
                            TextTrimming="CharacterEllipsis" Text="选中一行查看完整命令行" x:Name="DetailText" />
