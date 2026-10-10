@@ -206,6 +206,21 @@ public partial class MainWindow : Window
          AllCountText.Text = entries.Count.ToString();
          OnCountText.Text = enabled.ToString();
          OffCountText.Text = disabled.ToString();
+        
+        // 已启用 / 已停用 的构成条,让"大部分是启用还是停用"一眼可见
+        var total = enabled + disabled;
+        if (total == 0)
+        {
+            SplitOnColumn.Width = new GridLength(0);
+            SplitOffColumn.Width = new GridLength(0);
+            SplitText.Text = "还没有条目";
+        }
+        else
+        {
+            SplitOnColumn.Width = new GridLength(enabled, GridUnitType.Star);
+            SplitOffColumn.Width = new GridLength(disabled, GridUnitType.Star);
+            SplitText.Text = $"{enabled * 100 / total}% 处于启用状态";
+        }
  
          if (elevated)
          {
@@ -251,19 +266,24 @@ public partial class MainWindow : Window
         {
             DetailText.Text = "选中一行查看完整命令行";
             DetailText.ToolTip = null;
+            DetailLocationText.Visibility = Visibility.Collapsed;
             return;
         }
-
+        
         if (rows.Count > 1)
         {
             DetailText.Text = $"已选 {rows.Count} 项 · 右键可批量启用 / 停用 / 删除";
             DetailText.ToolTip = null;
+            DetailLocationText.Visibility = Visibility.Collapsed;
             return;
         }
-
+        
         var entry = rows[0].Entry;
-        DetailText.Text = $"{entry.CommandLine}    ·    {entry.Location}";
+        DetailText.Text = "命令行   " + entry.CommandLine;
         DetailText.ToolTip = entry.CommandLine;
+        DetailLocationText.Text = "位置     " + entry.Location;
+        DetailLocationText.ToolTip = entry.Location;
+        DetailLocationText.Visibility = Visibility.Visible;
     }
 
     /// <summary>RunOnce 是一次性条目,不受启用/停用控制,选中它时把这两个菜单项灰掉。</summary>
@@ -287,7 +307,11 @@ public partial class MainWindow : Window
 
     private void Filter_Changed(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
 
-    private void Filter_Changed(object sender, TextChangedEventArgs e) => _view?.Refresh();
+    private void Filter_Changed(object sender, TextChangedEventArgs e)
+    {
+        _view?.Refresh();
+        if (FilterSummaryText is not null) UpdateFilterSummary();
+    }
 
     private bool FilterPredicate(object item)
     {
@@ -348,7 +372,11 @@ public partial class MainWindow : Window
     private void UpdateFilterSummary()
     {
         if (FilterSummaryText is null) return;
-        FilterSummaryText.Text = $"筛选后 {_view.Cast<object>().Count()} 条 / 共 {_rows.Count} 条";
+        
+        var shown = _view.Cast<object>().Count();
+        FilterSummaryText.Text = $"筛选后 {shown} 条 / 共 {_rows.Count} 条";
+        if (EmptyHint is not null)
+            EmptyHint.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ---------------- 操作 ----------------
@@ -504,6 +532,21 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             NotifyError("提权失败(可能被取消)", ex.Message);
+        }
+    }
+    
+    private void CopyLocation_Click(object sender, RoutedEventArgs e)
+    {
+        var row = Grid.SelectedItem as EntryRow;
+        if (row is null) return;
+        
+        try
+        {
+            Clipboard.SetText(row.Entry.Location);
+        }
+        catch
+        {
+            // 剪贴板偶尔被其他程序占用,忽略
         }
     }
 
