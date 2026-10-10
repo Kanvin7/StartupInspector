@@ -44,7 +44,7 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border Background="{StaticResource AccentMuted}" CornerRadius="4" Margin="2,0" />
+                                                <Border Background="{DynamicResource AccentMuted}" CornerRadius="4" Margin="2,0" />
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -84,14 +84,14 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="Transparent" BorderBrush="{StaticResource LineSoft}"
+                        <Border x:Name="bd" Background="Transparent" BorderBrush="{DynamicResource LineSoft}"
                                 BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Hover}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4" />
@@ -108,7 +108,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{StaticResource Accent}" CornerRadius="4"
+                        <Border x:Name="bd" Background="{DynamicResource Accent}" CornerRadius="4"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
@@ -141,8 +141,8 @@
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                        <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
-                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Line}" />
+                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource Hover}" />
+                        <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Line}" />
                     </Trigger>
                     <Trigger Property="IsEnabled" Value="False">
                         <Setter Property="Opacity" Value="0.4" />
@@ -169,7 +169,7 @@
                         <Setter TargetName="ring" Property="Stroke" Value="{StaticResource Muted}" />
                     </Trigger>
                     <Trigger Property="IsChecked" Value="True">
-                        <Setter TargetName="ring" Property="Stroke" Value="{StaticResource Accent}" />
+                        <Setter TargetName="ring" Property="Stroke" Value="{DynamicResource Accent}" />
                     </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
@@ -184,17 +184,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="bd" Background="Transparent" BorderBrush="{StaticResource LineSoft}"
+                        <Border x:Name="bd" Background="Transparent" BorderBrush="{DynamicResource LineSoft}"
                                 BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,7,0,0">
                             <ContentPresenter />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Hover}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentDim}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentDim}" />
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -209,17 +209,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="bd" Background="Transparent" BorderBrush="{StaticResource LineSoft}"
+                        <Border x:Name="bd" Background="Transparent" BorderBrush="{DynamicResource LineSoft}"
                                 BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,7,0,0">
                             <ContentPresenter />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Hover}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentDim}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentDim}" />
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -233,8 +233,8 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Background" Value="{StaticResource PanelSoft}" />
             <Setter Property="Foreground" Value="{StaticResource Text}" />
-            <Setter Property="CaretBrush" Value="{StaticResource Accent}" />
-            <Setter Property="BorderBrush" Value="{StaticResource LineSoft}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LineSoft}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Template">
@@ -264,7 +264,7 @@
                                           IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
-                                        <Border Background="{StaticResource PanelSoft}" BorderBrush="{StaticResource LineSoft}"
+                                        <Border Background="{StaticResource PanelSoft}" BorderBrush="{DynamicResource LineSoft}"
                                                 BorderThickness="1" CornerRadius="4">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
@@ -286,7 +286,7 @@
                             <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
                                    Placement="Bottom" AllowsTransparency="True" StaysOpen="False"
                                    Focusable="False" PopupAnimation="Slide">
-                                <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
+                                <Border Background="{StaticResource Panel}" BorderBrush="{DynamicResource Line}"
                                         BorderThickness="1" CornerRadius="4" Margin="0,4,0,0"
                                         MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                         MaxHeight="260">
@@ -312,7 +312,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="RowBackground" Value="Transparent" />
             <Setter Property="AlternatingRowBackground" Value="Transparent" />
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource AccentGhost}" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource AccentGhost}" />
             <Setter Property="VerticalGridLinesBrush" Value="Transparent" />
             <Setter Property="GridLinesVisibility" Value="Horizontal" />
             <Setter Property="HeadersVisibility" Value="Column" />
@@ -339,10 +339,10 @@
             <Setter Property="SnapsToDevicePixels" Value="True" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource Hover}" />
+                    <Setter Property="Background" Value="{DynamicResource Hover}" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentDim}" />
+                    <Setter Property="Background" Value="{DynamicResource AccentDim}" />
                 </Trigger>
                 <DataTrigger Binding="{Binding IsDisabled}" Value="True">
                     <Setter Property="Foreground" Value="#5E7C88" />
@@ -375,7 +375,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- ================= 左栏:读数与筛选 ================= -->
-        <Border Grid.Column="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{StaticResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
             <Grid Margin="18,18,16,16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -386,7 +386,7 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0">
-                    <TextBlock Text="STARTUP INSPECTOR" Foreground="{StaticResource Accent}" FontSize="14"
+                    <TextBlock Text="STARTUP INSPECTOR" Foreground="{DynamicResource Accent}" FontSize="14"
                                FontWeight="SemiBold" />
                     <TextBlock x:Name="ElevationText" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,4,0,0" />
                 </StackPanel>
@@ -396,23 +396,23 @@
                         <TextBlock Text="总条目" Foreground="{StaticResource Muted}" FontSize="12" />
                         <TextBlock x:Name="TotalText" Text="0" HorizontalAlignment="Right" FontSize="12" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource LineSoft}" />
+                    <Border Height="1" Background="{DynamicResource LineSoft}" />
                     <Grid Margin="0,6,0,6">
                         <TextBlock Text="已启用" Foreground="{StaticResource Muted}" FontSize="12" />
                         <TextBlock x:Name="EnabledText" Text="0" HorizontalAlignment="Right" FontSize="12" Foreground="#7DD3A0" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource LineSoft}" />
+                    <Border Height="1" Background="{DynamicResource LineSoft}" />
                     <Grid Margin="0,6,0,6">
                         <TextBlock Text="已停用" Foreground="{StaticResource Muted}" FontSize="12" />
                         <TextBlock x:Name="DisabledText" Text="0" HorizontalAlignment="Right" FontSize="12" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource LineSoft}" />
+                    <Border Height="1" Background="{DynamicResource LineSoft}" />
                     <Grid Margin="0,6,0,6">
                         <TextBlock Text="最慢一项" Foreground="{StaticResource Muted}" FontSize="12" />
                         <TextBlock x:Name="SlowestText" Text="—" HorizontalAlignment="Right" FontSize="12" Foreground="#FB7185" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource LineSoft}" />
-                    <Border x:Name="SplitBar" Height="4" CornerRadius="2" Margin="0,10,0,0" Background="{StaticResource AccentGhost}">
+                    <Border Height="1" Background="{DynamicResource LineSoft}" />
+                    <Border x:Name="SplitBar" Height="4" CornerRadius="2" Margin="0,10,0,0" Background="{DynamicResource AccentGhost}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition x:Name="SplitOnColumn" Width="*" />
@@ -458,7 +458,7 @@
                 <StackPanel Grid.Row="4">
                     <Button x:Name="ElevateButton" Style="{StaticResource NeonButton}" Margin="0,0,0,10"
                             HorizontalAlignment="Stretch" Content="以管理员身份重启" Click="Elevate_Click" />
-                    <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,0,0,4" />
+                    <Border Height="1" Background="{DynamicResource LineSoft}" Margin="0,0,0,4" />
                     <Button Style="{StaticResource RailNav}" Click="About_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
@@ -589,7 +589,7 @@
 
             <!-- 面板内的提示 / 确认条,替代系统弹窗 -->
             <Border Grid.Row="3" x:Name="NoticeBar" Visibility="Collapsed" Margin="0,10,0,0"
-                    Background="{StaticResource PanelSoft}" BorderBrush="{StaticResource Accent}"
+                    Background="{StaticResource PanelSoft}" BorderBrush="{DynamicResource Accent}"
                     BorderThickness="1" CornerRadius="4" Padding="11,9">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -598,7 +598,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="NoticeGlyph" Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                               Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,9,0" />
+                               Foreground="{DynamicResource Accent}" VerticalAlignment="Top" Margin="0,1,9,0" />
                     <StackPanel Grid.Column="1">
                         <TextBlock x:Name="NoticeText" TextWrapping="Wrap" />
                         <TextBlock x:Name="NoticeDetail" TextWrapping="Wrap" MaxHeight="34" FontSize="11"
@@ -616,7 +616,7 @@
             </Border>
 
             <StackPanel Grid.Row="4" Margin="0,10,0,0">
-                <Border Height="1" Background="{StaticResource Line}" />
+                <Border Height="1" Background="{DynamicResource Line}" />
                 <TextBlock x:Name="DetailText" Margin="0,9,0,0" FontSize="11" Foreground="{StaticResource Muted}"
                            TextTrimming="CharacterEllipsis" Text="选中一行查看完整命令行" />
                 <TextBlock x:Name="DetailLocationText" Margin="0,3,0,0" FontSize="11" Foreground="{StaticResource Muted}"
@@ -627,12 +627,12 @@
                 <Border Background="#B2000000" MouseLeftButtonDown="OverlayBackdrop_Click" />
                 <Border x:Name="SettingsPanel" Visibility="Collapsed" Width="440" MaxHeight="430"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+                        Background="{StaticResource Panel}" BorderBrush="{DynamicResource Accent}"
                         BorderThickness="1" CornerRadius="6" Padding="18,16">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Text="设置" FontSize="15" Foreground="{StaticResource Accent}" />
-                            <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,12,0,0" />
+                            <TextBlock Text="设置" FontSize="15" Foreground="{DynamicResource Accent}" />
+                            <Border Height="1" Background="{DynamicResource LineSoft}" Margin="0,12,0,0" />
                             <TextBlock Text="主题色" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,14,0,0" />
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                 <RadioButton x:Name="AccentCyan" Style="{StaticResource AccentDot}" Background="#22D3EE" Tag="#22D3EE" ToolTip="青(默认)" Checked="AccentDot_Checked" />
@@ -649,13 +649,13 @@
                 </Border>
                 <Border x:Name="AboutPanel" Visibility="Collapsed" Width="500" MaxHeight="480"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+                        Background="{StaticResource Panel}" BorderBrush="{DynamicResource Accent}"
                         BorderThickness="1" CornerRadius="6" Padding="18,16">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Text="关于" FontSize="15" Foreground="{StaticResource Accent}" />
+                            <TextBlock Text="关于" FontSize="15" Foreground="{DynamicResource Accent}" />
                             <TextBlock x:Name="AboutVersionText" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
-                            <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,12,0,0" />
+                            <Border Height="1" Background="{DynamicResource LineSoft}" Margin="0,12,0,0" />
                             <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" LineHeight="20"
                                        Text="StartupInspector 是一个轻量的 Windows 开机自启项查看与管理工具。它把注册表 Run / RunOnce、启动文件夹、计划任务、系统服务,以及打包应用(Store / MSIX)的启动任务集中到一个列表里,可以按名称、发布者、路径搜索,按来源和状态筛选,也能按开机耗时排序。" />
                             <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" LineHeight="20"
@@ -663,7 +663,7 @@
                             <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" LineHeight="20"
                                        Text="本项目以 MIT 许可发布;运行时依赖 TaskScheduler 与 System.ServiceProcess.ServiceController,详见 THIRD-PARTY-NOTICES.md。" />
                             <TextBlock Margin="0,12,0,0" FontSize="12">
-                                <Hyperlink Click="RepoLink_Click" Foreground="{StaticResource Accent}">github.com/Kanvin7/StartupInspector</Hyperlink>
+                                <Hyperlink Click="RepoLink_Click" Foreground="{DynamicResource Accent}">github.com/Kanvin7/StartupInspector</Hyperlink>
                             </TextBlock>
                             <Button Style="{StaticResource NeonButton}" Margin="0,16,0,0" HorizontalAlignment="Right" Content="关闭" Click="ClosePanel_Click" />
                         </StackPanel>

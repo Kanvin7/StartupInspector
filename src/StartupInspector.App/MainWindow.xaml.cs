@@ -225,20 +225,27 @@ public partial class MainWindow : Window
         try { accent = (Color)ColorConverter.ConvertFromString(hex); }
         catch { return; }
     
-        SetBrushColor("Accent", accent);
-        SetBrushColor("Line", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
-        SetBrushColor("LineSoft", Color.FromArgb(0x26, accent.R, accent.G, accent.B));
-        SetBrushColor("AccentDim", Color.FromArgb(0x24, accent.R, accent.G, accent.B));
-        SetBrushColor("Hover", Color.FromArgb(0x12, accent.R, accent.G, accent.B));
-        SetBrushColor("AccentGhost", Color.FromArgb(0x1A, accent.R, accent.G, accent.B));
-        SetBrushColor("AccentMuted", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
+        SetBrush("Accent", accent);
+        SetBrush("Line", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
+        SetBrush("LineSoft", Color.FromArgb(0x26, accent.R, accent.G, accent.B));
+        SetBrush("AccentDim", Color.FromArgb(0x24, accent.R, accent.G, accent.B));
+        SetBrush("Hover", Color.FromArgb(0x12, accent.R, accent.G, accent.B));
+        SetBrush("AccentGhost", Color.FromArgb(0x1A, accent.R, accent.G, accent.B));
+        SetBrush("AccentMuted", Color.FromArgb(0x3A, accent.R, accent.G, accent.B));
     
         AppSettings.SaveAccent(hex);
     }
     
-    private void SetBrushColor(string key, Color color)
+    /// <summary>
+    /// 换主题色时替换资源字典里的那一项,而不是去改画刷的 Color ——
+    /// XAML 里声明的画刷会被 WPF 冻结(IsFrozen 为 true),改 Color 会静默失败;
+    /// 只要引用方用的是 DynamicResource,替换资源就会立刻生效。
+    /// </summary>
+    private void SetBrush(string key, Color color)
     {
-        if (Resources[key] is SolidColorBrush { IsFrozen: false } brush) brush.Color = color;
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        Resources[key] = brush;
     }
     
     // ---------------- 扫描 ----------------
